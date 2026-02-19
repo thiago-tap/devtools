@@ -22,7 +22,7 @@ const requirePolyfill = [
 
 try {
   buildSync({
-    entryPoints: [path.join(".open-next", "worker.js")],
+    entryPoints: [path.join("scripts", "worker-wrapper.js")],
     bundle: true,
     outfile: path.join(".open-next", "assets", "_worker.js"),
     format: "esm",
