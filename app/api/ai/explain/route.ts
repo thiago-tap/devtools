@@ -1,8 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-export const runtime = "edge";
-
 const PROMPTS: Record<string, string> = {
   json: "Você é um especialista em APIs e estruturas de dados. Explique de forma concisa e em português o que este JSON representa, sua estrutura e propósito. Máximo 3 parágrafos.",
   regex: "Você é um especialista em expressões regulares. Explique em português o que esta regex faz, parte por parte, de forma clara para um desenvolvedor. Seja conciso.",
