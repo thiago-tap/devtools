@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getRequestContext } from "@cloudflare/next-on-pages";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export const runtime = "edge";
 
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Código não fornecido" }, { status: 400 });
     }
 
-    const { env } = getRequestContext();
+    const { env } = await getCloudflareContext();
     const ai = (env as Record<string, unknown>).AI as {
       run: (model: string, options: unknown) => Promise<{ response?: string }>;
     };
