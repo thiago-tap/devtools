@@ -17,7 +17,7 @@ const nodeBuiltins = [
 // with the nodejs_compat flag.
 const requirePolyfill = [
   `import { createRequire as __createRequire } from "node:module";`,
-  `const require = __createRequire(import.meta.url);`,
+  `const require = __createRequire("file:///worker.js");`,
 ].join("\n");
 
 try {
