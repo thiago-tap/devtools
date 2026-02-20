@@ -6,6 +6,19 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TOOLS, CATEGORIES } from "@/lib/tools";
+import type { ToolCategory } from "@/types";
+
+const CATEGORY_LABELS: Record<ToolCategory, string> = {
+  JSON: "JSON",
+  Code: "Código",
+  Text: "Texto",
+  Encoding: "Codificação",
+  Security: "Segurança",
+  Colors: "Cores",
+  Database: "Banco de Dados",
+  Utilities: "Utilitários",
+  Network: "Rede",
+};
 
 const ICONS: Record<string, React.ElementType> = {
   Binary, Braces, Bot, Clock, Database, FileText, FileType,
@@ -37,7 +50,7 @@ export default function Home() {
         return (
           <div key={category} className="mb-10">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-              {category}
+              {CATEGORY_LABELS[category as ToolCategory] ?? category}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {tools.map((tool) => {

@@ -2,8 +2,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Binary, Braces, Bot, Clock, Database, FileText, Fingerprint,
-  GitCompare, Hash, KeyRound, Palette, Regex, ShieldCheck, Wrench,
+  Binary, Braces, Bot, Clock, Database, FileText, FileType, Fingerprint,
+  GitCompare, Globe, Hash, KeyRound, Palette, Regex, Server, ShieldCheck,
+  Timer, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TOOLS } from "@/lib/tools";
@@ -11,9 +12,9 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import type { ToolCategory } from "@/types";
 
 const ICONS: Record<string, React.ElementType> = {
-  Binary, Braces, Bot, Clock, Database, FileText,
-  Fingerprint, GitCompare, Hash, KeyRound, Palette,
-  Regex, ShieldCheck,
+  Binary, Braces, Bot, Clock, Database, FileText, FileType,
+  Fingerprint, GitCompare, Globe, Hash, KeyRound, Palette,
+  Regex, Server, ShieldCheck, Timer,
 };
 
 const CATEGORY_LABELS: Record<ToolCategory, string> = {
@@ -25,9 +26,10 @@ const CATEGORY_LABELS: Record<ToolCategory, string> = {
   Colors: "Cores",
   Database: "Banco de Dados",
   Utilities: "Utilitários",
+  Network: "Rede",
 };
 
-const CATEGORY_ORDER: ToolCategory[] = ["JSON", "Code", "Text", "Encoding", "Security", "Colors", "Database", "Utilities"];
+const CATEGORY_ORDER: ToolCategory[] = ["JSON", "Code", "Text", "Encoding", "Security", "Colors", "Database", "Utilities", "Network"];
 
 export function Sidebar() {
   const pathname = usePathname();

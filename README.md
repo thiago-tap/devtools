@@ -19,23 +19,27 @@ As ferramentas com **IA** usam o **Cloudflare Workers AI** (Llama 3) para explic
 
 ---
 
-## Ferramentas disponíveis (13)
+## Ferramentas disponíveis (17)
 
 | Ferramenta | Categoria | IA |
-|---|---|---|
-| JSON Formatter | JSON | Sim |
-| Regex Tester | Texto | Sim |
-| Base64 / URL / HTML Encoder | Codificação | Não |
-| JWT Decoder | Segurança | Não |
-| Hash Generator (MD5, SHA-1, SHA-256, SHA-512) | Segurança | Não |
-| Color Converter (HEX, RGB, HSL, HSV, CMYK) | Cores | Não |
-| Password Generator | Segurança | Não |
-| UUID Generator | Utilitários | Não |
-| Text Diff | Texto | Não |
-| Markdown Preview | Texto | Não |
-| AI Code Review | Código | Sim |
-| SQL Formatter | Banco de Dados | Sim |
-| Cron Parser | Utilitários | Não |
+| --- | --- | --- |
+| Formatador JSON | JSON | Sim |
+| Testador de Regex | Texto | Sim |
+| Codificador Base64 / URL / HTML | Codificação | Não |
+| Decodificador JWT | Segurança | Não |
+| Gerador de Hash (MD5, SHA-1, SHA-256, SHA-512) | Segurança | Não |
+| Conversor de Cores (HEX, RGB, HSL, HSV, CMYK) | Cores | Não |
+| Gerador de Senha | Segurança | Não |
+| Gerador de UUID | Utilitários | Não |
+| Comparador de Texto (Diff) | Texto | Não |
+| Preview Markdown | Texto | Não |
+| Revisão de Código IA | Código | Sim |
+| Formatador SQL | Banco de Dados | Sim |
+| Interpretador Cron | Utilitários | Não |
+| Conversor de Timestamp | Utilitários | Não |
+| MIME Types | Utilitários | Não |
+| DNS Check | Rede | Não |
+| HTTP Headers Inspector | Rede | Não |
 
 ---
 
