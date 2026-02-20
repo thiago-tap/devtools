@@ -1,15 +1,16 @@
 import Link from "next/link";
 import {
-  Binary, Braces, Bot, Clock, Database, FileText, Fingerprint,
-  GitCompare, Hash, KeyRound, Palette, Regex, ShieldCheck, Wrench, Search,
+  Binary, Braces, Bot, Clock, Database, FileText, FileType, Fingerprint,
+  GitCompare, Globe, Hash, KeyRound, Palette, Regex, Server, ShieldCheck,
+  Timer, Wrench, Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TOOLS, CATEGORIES } from "@/lib/tools";
 
 const ICONS: Record<string, React.ElementType> = {
-  Binary, Braces, Bot, Clock, Database, FileText,
-  Fingerprint, GitCompare, Hash, KeyRound, Palette,
-  Regex, ShieldCheck,
+  Binary, Braces, Bot, Clock, Database, FileText, FileType,
+  Fingerprint, GitCompare, Globe, Hash, KeyRound, Palette,
+  Regex, Server, ShieldCheck, Timer,
 };
 
 export default function Home() {

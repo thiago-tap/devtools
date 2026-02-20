@@ -18,7 +18,8 @@ export type ToolCategory =
   | "Colors"
   | "Security"
   | "Database"
-  | "Utilities";
+  | "Utilities"
+  | "Network";
 
 export interface AIResponse {
   result: string;
