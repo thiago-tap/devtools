@@ -11,6 +11,12 @@
 
 ---
 
+## Documentação
+
+Planejamento técnico, migração Easypanel e Estúdio de Estampas: **[docs/](./docs/)**
+
+---
+
 ## Sobre o projeto
 
 O **DevToolbox** é uma plataforma open-source com ferramentas essenciais para o dia a dia de desenvolvedores. A maioria roda **100% no navegador** — sem login, sem coleta de dados nas ferramentas client-side.
