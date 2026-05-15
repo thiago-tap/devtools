@@ -1,27 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server";
-
-function isBlockedUrl(urlStr: string): boolean {
-  try {
-    const { hostname } = new URL(urlStr);
-    const h = hostname.toLowerCase();
-    return (
-      h === "localhost" ||
-      h === "127.0.0.1" ||
-      h === "::1" ||
-      h.startsWith("10.") ||
-      h.startsWith("192.168.") ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
-      h.endsWith(".local") ||
-      h.endsWith(".internal")
-    );
-  } catch {
-    return true;
-  }
-}
+import {
+  isBlockedUrl,
+  parseJsonBody,
+  withApiGuards,
+} from "@/lib/api/security";
 
 export async function POST(request: NextRequest) {
+  const blocked = withApiGuards(request);
+  if (blocked) return blocked;
+
+  const body = await parseJsonBody<{ url?: string }>(request);
+  if (!body.ok) return body.response;
+
   try {
-    const { url: inputUrl } = await request.json();
+    const { url: inputUrl } = body.data;
 
     if (!inputUrl || typeof inputUrl !== "string") {
       return NextResponse.json({ error: "URL inválida" }, { status: 400 });

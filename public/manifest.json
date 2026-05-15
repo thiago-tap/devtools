@@ -1,0 +1,18 @@
+{
+  "name": "DevToolbox",
+  "short_name": "DevToolbox",
+  "description": "Ferramentas gratuitas para desenvolvedores",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#6366f1",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

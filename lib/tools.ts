@@ -12,6 +12,16 @@ export const TOOLS: Tool[] = [
     hasAI: true,
   },
   {
+    id: "yaml",
+    name: "YAML ↔ JSON",
+    description: "Converta entre YAML e JSON para Kubernetes, CI/CD e configs",
+    category: "JSON",
+    href: "/tools/yaml",
+    icon: "FileCode2",
+    tags: ["yaml", "json", "kubernetes", "config", "converter"],
+    isNew: true,
+  },
+  {
     id: "regex",
     name: "Testador de Regex",
     description: "Teste expressões regulares com highlighting e explicação por IA",
@@ -40,13 +50,23 @@ export const TOOLS: Tool[] = [
     tags: ["jwt", "token", "auth", "decodificar"],
   },
   {
+    id: "secrets",
+    name: "Gerador de Secrets",
+    description: "Gere secrets aleatórios em base64 ou hex (openssl rand)",
+    category: "Security",
+    href: "/tools/secrets",
+    icon: "Key",
+    tags: ["secret", "openssl", "jwt", "webhook", "base64", "hex", "random"],
+    isNew: true,
+  },
+  {
     id: "hash",
     name: "Gerador de Hash",
-    description: "Gere hashes MD5, SHA-1, SHA-256 e SHA-512",
+    description: "Digest MD5/SHA-2, HMAC para webhooks e comparação de hashes",
     category: "Security",
     href: "/tools/hash",
     icon: "Hash",
-    tags: ["hash", "sha256", "md5", "criptografia"],
+    tags: ["hash", "sha256", "sha384", "sha3", "blake2", "hmac", "md5", "webhook", "criptografia"],
   },
   {
     id: "colors",
@@ -102,7 +122,6 @@ export const TOOLS: Tool[] = [
     icon: "Bot",
     tags: ["ia", "código", "revisão", "refatorar"],
     hasAI: true,
-    isNew: true,
   },
   {
     id: "sql",
@@ -113,6 +132,26 @@ export const TOOLS: Tool[] = [
     icon: "Database",
     tags: ["sql", "banco de dados", "query", "formatar"],
     hasAI: true,
+  },
+  {
+    id: "env",
+    name: "Formatador .env",
+    description: "Valide, ordene e mascare variáveis de ambiente",
+    category: "Utilities",
+    href: "/tools/env",
+    icon: "Variable",
+    tags: ["env", "dotenv", "variáveis", "ambiente", "secrets"],
+    isNew: true,
+  },
+  {
+    id: "base-converter",
+    name: "Conversor de bases",
+    description: "Converta entre binário, octal, decimal e hexadecimal",
+    category: "Utilities",
+    href: "/tools/base-converter",
+    icon: "Calculator",
+    tags: ["binário", "hex", "decimal", "octal", "base", "número"],
+    isNew: true,
   },
   {
     id: "cron",
@@ -131,7 +170,6 @@ export const TOOLS: Tool[] = [
     href: "/tools/timestamp",
     icon: "Timer",
     tags: ["timestamp", "unix", "data", "tempo", "converter"],
-    isNew: true,
   },
   {
     id: "mime",
@@ -141,7 +179,6 @@ export const TOOLS: Tool[] = [
     href: "/tools/mime",
     icon: "FileType",
     tags: ["mime", "content-type", "extensão", "arquivo", "tipo"],
-    isNew: true,
   },
   {
     id: "dns",
@@ -151,7 +188,6 @@ export const TOOLS: Tool[] = [
     href: "/tools/dns",
     icon: "Globe",
     tags: ["dns", "domínio", "registros", "mx", "txt", "nameserver"],
-    isNew: true,
   },
   {
     id: "headers",
@@ -161,7 +197,6 @@ export const TOOLS: Tool[] = [
     href: "/tools/headers",
     icon: "Server",
     tags: ["http", "headers", "cabeçalhos", "resposta", "url", "segurança"],
-    isNew: true,
   },
 ];
 

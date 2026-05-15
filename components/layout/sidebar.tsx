@@ -2,9 +2,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Binary, Braces, Bot, Clock, Database, FileText, FileType, Fingerprint,
-  GitCompare, Globe, Hash, KeyRound, Palette, Regex, Server, ShieldCheck,
-  Timer, Wrench,
+  Binary, Braces, Bot, Calculator, Clock, Database, FileCode2, FileText, FileType,
+  Fingerprint, GitCompare, Globe, Hash, Key, KeyRound, Palette, Regex, Server,
+  ShieldCheck, Timer, Variable, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TOOLS } from "@/lib/tools";
@@ -12,9 +12,9 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import type { ToolCategory } from "@/types";
 
 const ICONS: Record<string, React.ElementType> = {
-  Binary, Braces, Bot, Clock, Database, FileText, FileType,
-  Fingerprint, GitCompare, Globe, Hash, KeyRound, Palette,
-  Regex, Server, ShieldCheck, Timer,
+  Binary, Braces, Bot, Calculator, Clock, Database, FileCode2, FileText, FileType,
+  Fingerprint, GitCompare, Globe, Hash, Key, KeyRound, Palette,
+  Regex, Server, ShieldCheck, Timer, Variable,
 };
 
 const CATEGORY_LABELS: Record<ToolCategory, string> = {
@@ -90,7 +90,13 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="p-3 border-t">
+      <div className="p-3 border-t space-y-2">
+        <Link
+          href="/privacidade"
+          className="block text-[10px] text-muted-foreground text-center hover:text-foreground"
+        >
+          Privacidade
+        </Link>
         <p className="text-[10px] text-muted-foreground text-center">
           devtools.catiteo.com
         </p>

@@ -1,12 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { parseJsonBody, withApiGuards } from "@/lib/api/security";
+
+const MAX_CODE_LENGTH = 24_000;
 
 export async function POST(request: NextRequest) {
+  const blocked = withApiGuards(request, { limit: 20, windowMs: 60_000 });
+  if (blocked) return blocked;
+
+  const body = await parseJsonBody<{ code?: string; from?: string; to?: string }>(request);
+  if (!body.ok) return body.response;
+
   try {
-    const { code, from, to } = await request.json();
+    const { code, from, to } = body.data;
 
     if (!code?.trim()) {
       return NextResponse.json({ error: "Código não fornecido" }, { status: 400 });
+    }
+
+    if (code.length > MAX_CODE_LENGTH) {
+      return NextResponse.json(
+        { error: `Código excede o limite de ${MAX_CODE_LENGTH} caracteres` },
+        { status: 400 }
+      );
     }
 
     const { env } = await getCloudflareContext();
@@ -15,7 +31,10 @@ export async function POST(request: NextRequest) {
     };
 
     if (!ai) {
-      return NextResponse.json({ error: "AI não disponível neste ambiente. Configure o Cloudflare AI." }, { status: 503 });
+      return NextResponse.json(
+        { error: "AI não disponível neste ambiente. Configure o Cloudflare AI." },
+        { status: 503 }
+      );
     }
 
     const result = await ai.run("@cf/meta/llama-3-8b-instruct", {

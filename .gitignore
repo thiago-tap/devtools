@@ -1,7 +1,39 @@
+# Dependencies
 node_modules/
+
+# Next.js
 .next/
-.vercel/
+out/
+
+# OpenNext / Cloudflare build artifacts (gerado por npm run pages:build)
+.open-next/
+
+# Cloudflare local
 .wrangler/
+.dev.vars
+
+# Environment (nunca commitar secrets)
+.env
+.env.*
+!.env.example
+
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
-.env.local
+
+# Vercel (se usar)
+.vercel/
+
+# Testes / cobertura
+coverage/
+
+# Logs e SO
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# IDE (opcional — evita ruído no repo)
+.idea/
+.vscode/
+*.swp

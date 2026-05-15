@@ -43,6 +43,11 @@ export const metadata: Metadata = {
     images: [`${APP_URL}/og-image.png`],
   },
   alternates: { canonical: APP_URL },
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

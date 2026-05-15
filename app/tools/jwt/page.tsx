@@ -13,6 +13,11 @@ export default function JWTPage() {
 
   return (
     <ToolLayout title="Decodificador JWT" description="Decodifique e inspecione tokens JWT com validação de expiração">
+      <div className="text-sm text-muted-foreground p-3 rounded-lg border bg-muted/30">
+        Esta ferramenta <strong className="text-foreground">não valida a assinatura</strong> do token
+        (não verifica se foi emitido por um emissor confiável). Use apenas para debug local.
+        Tokens decodificados podem estar expirados ou forjados.
+      </div>
       <Panel title="Token JWT">
         <Textarea
           value={input}
