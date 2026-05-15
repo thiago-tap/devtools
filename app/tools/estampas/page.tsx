@@ -487,7 +487,7 @@ export default function EstampasPage() {
       {tab === "cores" && (
         <Panel title="Remover cor (knockout)">
           <p className="text-sm text-muted-foreground mb-3">
-            Para fundo sólido (ex.: roxo), prefira amostrar a cor com o pincel ou o clique na imagem — melhor que Rembg para texto.
+            Para fundo sólido (ex.: roxo), prefira amostrar a cor com o pincel ou o clique na imagem — melhor que Rembg para texto. Bordas anti-alias (mistura roxo+preto) são limpas em volta do buraco transparente; se ainda notar halo, suba um pouco a tolerância.
           </p>
           <div className="flex flex-wrap gap-2 items-center mb-4">
             <Button

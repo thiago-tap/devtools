@@ -99,6 +99,13 @@ npm test
 
 4. Aponte o domínio `devtools.catiteo.com` para o serviço Easypanel.
 
+**Deploy via GitHub Actions (opcional):** o workflow `.github/workflows/easypanel-deploy.yml` faz `curl` nos webhooks do Easypanel após cada push na branch `main`. Em **GitHub → Settings → Secrets and variables → Actions**, crie:
+
+- `EASYPANEL_DEPLOY_DEVTOOLS` — URL completa do webhook do app (ex.: `http://IP:3000/api/deploy/...`)
+- `EASYPANEL_DEPLOY_REMBG` — URL completa do webhook do Rembg
+
+Não commite essas URLs no repositório (contêm token no path).
+
 **Remover fundo (Rembg):** não entra no `Dockerfile` principal (seria Node + Python + modelos na mesma imagem). No repositório há `Dockerfile.rembg` e o `docker-compose.yml` sobe **app + rembg** juntos no ambiente local. No Easypanel, crie um **segundo** serviço com **Dockerfile** = `Dockerfile.rembg` (mesmo repo) e defina `REMBG_BASE_URL=http://<nome-do-servico-rembg>:7000` no app — detalhes em [docs/easypanel-setup.md](./docs/easypanel-setup.md).
 
 ### Docker local (`docker-compose.yml`)

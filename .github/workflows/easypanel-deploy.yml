@@ -1,0 +1,43 @@
+# Dispara rebuild nos serviços Easypanel (webhooks de deploy).
+#
+# Configure no repositório GitHub → Settings → Secrets and variables → Actions → New repository secret:
+#   EASYPANEL_DEPLOY_DEVTOOLS  = URL completa do webhook do app DevToolbox (com token no path)
+#   EASYPANEL_DEPLOY_REMBG    = URL completa do webhook do Rembg
+#
+# Sem esses secrets, o job falha de propósito (não deployar sem credenciais).
+
+name: Easypanel — trigger deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: easypanel-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar secrets
+        run: |
+          if [ -z "${{ secrets.EASYPANEL_DEPLOY_DEVTOOLS }}" ]; then
+            echo "::error::Defina o secret EASYPANEL_DEPLOY_DEVTOOLS (URL completa do webhook DevToolbox)."
+            exit 1
+          fi
+          if [ -z "${{ secrets.EASYPANEL_DEPLOY_REMBG }}" ]; then
+            echo "::error::Defina o secret EASYPANEL_DEPLOY_REMBG (URL completa do webhook Rembg)."
+            exit 1
+          fi
+
+      - name: DevToolbox — gatilho de deploy
+        run: |
+          curl -fsS -m 120 "${{ secrets.EASYPANEL_DEPLOY_DEVTOOLS }}"
+          echo ""
+
+      - name: Rembg — gatilho de deploy
+        run: |
+          curl -fsS -m 120 "${{ secrets.EASYPANEL_DEPLOY_REMBG }}"
+          echo ""
