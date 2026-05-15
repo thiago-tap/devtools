@@ -6,9 +6,10 @@ O **DevToolbox** é uma caixa de ferramentas web gratuita para desenvolvedores. 
 
 | Item | Valor |
 |------|--------|
-| URL produção | https://devtools.catiteo.com |
+| URL produção | https://devtools.catiteo.com (migrar DNS → Easypanel) |
 | Branch principal | `main` |
 | Versão package | `1.0.0` |
+| Hospedagem alvo | Easypanel / Docker (Node 20) |
 
 ---
 
@@ -17,10 +18,10 @@ O **DevToolbox** é uma caixa de ferramentas web gratuita para desenvolvedores. 
 ```
 Frontend     Next.js 15 (App Router) + React 19 + TypeScript
 Estilo       Tailwind CSS + componentes UI (shadcn-style)
-Hospedagem   Cloudflare Pages
-Runtime API  Cloudflare Workers (OpenNext)
-IA           Cloudflare Workers AI — @cf/meta/llama-3-8b-instruct
-Build deploy opennextjs-cloudflare + scripts/bundle-worker.js
+Hospedagem   Easypanel / Docker (Node 20)
+Runtime API  Next.js Route Handlers (Node)
+IA           lib/ai/client.ts — OpenAI-compatible ou Ollama (env)
+Build deploy Dockerfile (output: standalone)
 Testes       Vitest (lib/tools)
 ```
 
@@ -29,19 +30,20 @@ Testes       Vitest (lib/tools)
 | Comando | Função |
 |---------|--------|
 | `npm run dev` | Desenvolvimento local |
-| `npm run build` | Build Next.js padrão |
-| `npm run pages:build` | Build OpenNext para Cloudflare |
-| `npm run deploy` | Deploy Cloudflare Pages |
+| `npm run build` | Build Next.js (standalone) |
+| `npm run start` | Servidor de produção |
 | `npm test` | Vitest |
+| `docker compose up --build` | Docker local |
 
-### Arquivos de infraestrutura (Cloudflare)
+### Arquivos de infraestrutura
 
 | Arquivo | Função |
 |---------|--------|
-| `wrangler.toml` | Nome do projeto, binding `[ai]`, vars públicas |
-| `open-next.config.ts` | Config OpenNext Cloudflare |
-| `scripts/bundle-worker.js` | Bundle do `_worker.js` com polyfill `require` |
-| `next.config.js` | `images.unoptimized`, ignore TS/eslint no build |
+| `Dockerfile` | Imagem de produção (standalone) |
+| `docker-compose.yml` | Stack local |
+| `.env.example` | Variáveis (IA, URL pública) |
+| `next.config.js` | `output: standalone`, images unoptimized |
+| `docs/legacy/cloudflare-wrangler.toml` | Referência do deploy Cloudflare anterior |
 
 ---
 

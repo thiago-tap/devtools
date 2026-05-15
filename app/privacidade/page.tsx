@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacidade",
   description:
-    "Como o DevToolbox trata seus dados: ferramentas no navegador, APIs de rede e uso de IA no Cloudflare.",
+    "Como o DevToolbox trata seus dados: ferramentas no navegador, APIs de rede e uso de IA no servidor.",
 };
 
 export default function PrivacidadePage() {
@@ -28,9 +28,9 @@ export default function PrivacidadePage() {
         </div>
 
         <div>
-          <h2 className="text-foreground font-semibold mb-1">APIs no servidor (Cloudflare)</h2>
+          <h2 className="text-foreground font-semibold mb-1">APIs no servidor</h2>
           <p>
-            DNS Check, HTTP Headers e recursos de IA fazem requisições ao Worker na Cloudflare.
+            DNS Check, HTTP Headers e recursos de IA fazem requisições ao nosso servidor.
             Para DNS e Headers, enviamos apenas o domínio ou URL informados. Endereços
             privados são bloqueados. Há limite de taxa por IP.
           </p>
@@ -39,8 +39,9 @@ export default function PrivacidadePage() {
         <div>
           <h2 className="text-foreground font-semibold mb-1">Inteligência artificial</h2>
           <p>
-            Explicações e revisão de código usam Cloudflare Workers AI (Llama). Não envie
-            segredos de produção ou dados pessoais nesses campos.
+            Explicações e revisão de código usam um provedor de IA configurado no servidor
+            (API compatível com OpenAI ou Ollama local). Não envie segredos de produção ou
+            dados pessoais nesses campos.
           </p>
         </div>
 

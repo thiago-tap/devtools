@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { AiNotConfiguredError, runChat } from "@/lib/ai/client";
 import { parseJsonBody, withApiGuards } from "@/lib/api/security";
 
 const PROMPTS: Record<string, string> = {
@@ -31,31 +31,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { env } = await getCloudflareContext();
-    const ai = (env as Record<string, unknown>).AI as {
-      run: (model: string, options: unknown) => Promise<{ response?: string }>;
-    };
-
-    if (!ai) {
-      return NextResponse.json(
-        { error: "AI não disponível neste ambiente. Configure o Cloudflare AI." },
-        { status: 503 }
-      );
-    }
-
     const systemPrompt =
       PROMPTS[type ?? ""] ?? "Explique o seguinte código de forma clara e em português.";
 
-    const result = await ai.run("@cf/meta/llama-3-8b-instruct", {
+    const result = await runChat({
+      maxTokens: 512,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `\`\`\`\n${code}\n\`\`\`` },
       ],
-      max_tokens: 512,
     });
 
-    return NextResponse.json({ result: result.response ?? "Sem resposta da AI." });
+    return NextResponse.json({ result });
   } catch (e) {
+    if (e instanceof AiNotConfiguredError) {
+      return NextResponse.json({ error: e.message }, { status: 503 });
+    }
     console.error(e);
     return NextResponse.json({ error: "Erro interno: " + (e as Error).message }, { status: 500 });
   }

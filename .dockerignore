@@ -1,0 +1,12 @@
+node_modules
+.next
+.open-next
+.wrangler
+.git
+.gitignore
+coverage
+*.md
+!README.md
+.env
+.env.*
+docs

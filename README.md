@@ -5,7 +5,7 @@
 
 ![DevToolbox](https://img.shields.io/badge/status-ativo-brightgreen)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black)
-![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages-orange)
+![Docker](https://img.shields.io/badge/Docker-Easypanel-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![License](https://img.shields.io/badge/licença-MIT-green)
 
@@ -21,7 +21,7 @@ Planejamento técnico, migração Easypanel e Estúdio de Estampas: **[docs/](./
 
 O **DevToolbox** é uma plataforma open-source com ferramentas essenciais para o dia a dia de desenvolvedores. A maioria roda **100% no navegador** — sem login, sem coleta de dados nas ferramentas client-side.
 
-As ferramentas com **IA** usam **Cloudflare Workers AI** (Llama 3) para explicar código, revisar boas práticas e converter entre linguagens.
+As ferramentas com **IA** usam um provedor configurável no servidor (**OpenAI-compatible** ou **Ollama**) para explicar código, revisar boas práticas e converter entre linguagens.
 
 ---
 
@@ -57,9 +57,9 @@ As ferramentas com **IA** usam **Cloudflare Workers AI** (Llama 3) para explicar
 
 ```
 Frontend:    Next.js 15 (App Router) + TypeScript + Tailwind CSS
-Hospedagem:  Cloudflare Pages + Workers (edge)
-IA:          Cloudflare Workers AI — Llama 3 8B Instruct
-Deploy:      OpenNext para Cloudflare
+Hospedagem:  Easypanel / Docker (Node.js 20)
+IA:          OpenAI API, Groq, OpenRouter ou Ollama (env)
+Deploy:      Dockerfile (Next.js standalone)
 Testes:      Vitest (lib/tools)
 ```
 
@@ -76,7 +76,7 @@ npm run dev
 
 Acesse [http://localhost:3000](http://localhost:3000).
 
-> **IA:** funcionalidades de IA dependem do binding Cloudflare em produção. Localmente, a API retorna indisponibilidade.
+> **IA:** copie `.env.example` para `.env` e configure `OPENAI_API_KEY` ou `OLLAMA_BASE_URL`.
 
 ### Testes
 
@@ -86,15 +86,27 @@ npm test
 
 ---
 
-## Deploy no Cloudflare Pages
+## Deploy no Easypanel (Docker)
+
+1. Crie um app **Docker** no Easypanel apontando para este repositório.
+2. Build: usa o `Dockerfile` na raiz (Next.js `standalone`).
+3. Porta **3000**, variáveis de ambiente (ver `.env.example`):
+
+   - `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_APP_NAME`
+   - `OPENAI_API_KEY` + opcional `OPENAI_BASE_URL`, `AI_MODEL`
+   - ou `OLLAMA_BASE_URL` + `OLLAMA_MODEL`
+
+4. Aponte o domínio `devtools.catiteo.com` para o serviço Easypanel.
+
+### Docker local
 
 ```bash
-wrangler login
-npm run pages:build
-npm run deploy
+cp .env.example .env
+# edite .env com suas chaves
+docker compose up --build
 ```
 
-Domínio customizado: `devtools.catiteo.com` → CNAME para `developer-toolbox.pages.dev`.
+Deploy Cloudflare anterior: ver `docs/legacy/cloudflare-wrangler.toml`.
 
 ---
 
@@ -103,10 +115,9 @@ Domínio customizado: `devtools.catiteo.com` → CNAME para `developer-toolbox.p
 | Comando | Descrição |
 | --- | --- |
 | `npm run dev` | Desenvolvimento local |
-| `npm run build` | Build Next.js |
+| `npm run build` | Build Next.js (standalone) |
+| `npm run start` | Produção local após build |
 | `npm test` | Testes Vitest |
-| `npm run pages:build` | Build OpenNext + Cloudflare |
-| `npm run deploy` | Deploy para Cloudflare Pages |
 
 ---
 

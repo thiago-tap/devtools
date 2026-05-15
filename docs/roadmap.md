@@ -21,13 +21,13 @@ Legenda: `[x]` feito · `[ ]` pendente · `[~]` em andamento
 
 | Status | Tarefa |
 |--------|--------|
-| [ ] | Dockerfile + Next `standalone` |
-| [ ] | Remover OpenNext, wrangler, bundle-worker |
-| [ ] | `lib/ai/client.ts` + refactor `/api/ai/*` |
+| [x] | Dockerfile + Next `standalone` |
+| [x] | Remover OpenNext, wrangler, bundle-worker |
+| [x] | `lib/ai/client.ts` + refactor `/api/ai/*` |
 | [ ] | Deploy Easypanel + env vars |
 | [ ] | Testes: 21 ferramentas + APIs DNS/headers/IA |
 | [ ] | Cutover DNS `devtools.catiteo.com` |
-| [ ] | Atualizar README (deploy Easypanel) |
+| [x] | Atualizar README (deploy Easypanel) |
 
 **Critério de pronto:** produção estável 48h; `npm test` verde; IA funcionando ou desabilitada com mensagem clara.
 

@@ -1,3 +1,6 @@
+# Arquivo histórico — deploy anterior em Cloudflare Pages (OpenNext).
+# Mantido apenas como referência após migração para Easypanel.
+
 name = "developer-toolbox"
 compatibility_date = "2026-02-19"
 compatibility_flags = ["nodejs_compat"]
