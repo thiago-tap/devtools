@@ -39,4 +39,25 @@ describe("color", () => {
     expect(data[7]).toBe(0);
     expect(data[11]).toBe(255);
   });
+
+  it("knockout fringe keeps light anti-alias of small dark text", () => {
+    const key = { r: 147, g: 73, b: 255 };
+    const lightAa: [number, number, number] = [100, 50, 150];
+    const data = Buffer.from([
+      key.r,
+      key.g,
+      key.b,
+      255,
+      ...lightAa,
+      255,
+      0,
+      0,
+      0,
+      255,
+    ]);
+    applyColorKnockout(data, 3, 1, key, 40);
+    expect(data[3]).toBe(0);
+    expect(data[7]).toBe(255);
+    expect(data[11]).toBe(255);
+  });
 });

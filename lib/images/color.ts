@@ -48,9 +48,12 @@ function applyKnockoutFringePasses(
         if (data[i + 3] === 0) continue;
 
         const pixel: Rgb = { r: data[i], g: data[i + 1], b: data[i + 2] };
-        const nearKey = colorDistance(pixel, target) <= fringeTol;
-        const darkFringe = isKeyBlackAntiAliasFringe(pixel, target, 48);
-        if (!nearKey && !darkFringe) continue;
+        const dTarget = colorDistance(pixel, target);
+        if (dTarget > fringeTol) continue;
+
+        if (preserveLikelySmallTextStroke(pixel, target)) continue;
+        if (preserveNearBlackCore(pixel)) continue;
+        if (darkOpaqueNeighborCount(data, width, height, x, y) >= 2) continue;
 
         const transparentNeighbor =
           (x > 0 && data[i - 4 + 3] === 0) ||
@@ -79,7 +82,7 @@ function fringeToleranceForTarget(target: Rgb, baseTolerance: number): number {
     colorDistance(target, RGB_BLACK),
     colorDistance(target, RGB_WHITE)
   );
-  return Math.min(290, baseTolerance + span * 0.78);
+  return Math.min(238, baseTolerance + span * 0.68);
 }
 
 function luminance(p: Rgb): number {
@@ -87,17 +90,45 @@ function luminance(p: Rgb): number {
 }
 
 /**
- * Borda texto preto + fundo roxo: pixel pode estar mais perto do preto que do roxo,
- * mas ainda ser resíduo da chave — removemos se for escuro e "quase tão roxo quanto preto".
+ * Letras pequenas às vezes só existem como anti-alias “claro” (média preto+fundo).
+ * A regra antiga comia esses pixels; aqui protegemos esse tipo de mistura.
  */
-function isKeyBlackAntiAliasFringe(pixel: Rgb, target: Rgb, band: number): boolean {
+function preserveLikelySmallTextStroke(pixel: Rgb, target: Rgb): boolean {
   const dTarget = colorDistance(pixel, target);
+  const lum = luminance(pixel);
+  return lum > 58 && dTarget < 142;
+}
+
+/** Núcleo preto/cinza do traço — não expandir franja por cima (limiar apertado para não confundir com halo). */
+function preserveNearBlackCore(pixel: Rgb): boolean {
   const dBlack = colorDistance(pixel, RGB_BLACK);
-  return (
-    dTarget < dBlack + band &&
-    luminance(pixel) < 200 &&
-    dTarget < 265
-  );
+  return dBlack < 58 && luminance(pixel) < 74;
+}
+
+function darkOpaqueNeighborCount(
+  data: Buffer,
+  width: number,
+  height: number,
+  x: number,
+  y: number
+): number {
+  let count = 0;
+  const dirs = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ] as const;
+  for (const [dx, dy] of dirs) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+    const j = (ny * width + nx) * 4;
+    if (data[j + 3] === 0) continue;
+    const p: Rgb = { r: data[j], g: data[j + 1], b: data[j + 2] };
+    if (luminance(p) < 52) count += 1;
+  }
+  return count;
 }
 
 export function applyColorKnockout(
@@ -115,7 +146,7 @@ export function applyColorKnockout(
     }
   }
 
-  const fringePasses = opts?.fringePasses ?? 4;
+  const fringePasses = opts?.fringePasses ?? 3;
   if (fringePasses <= 0) return;
 
   const fringeTol = fringeToleranceForTarget(target, tolerance);
