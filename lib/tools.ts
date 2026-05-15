@@ -69,6 +69,17 @@ export const TOOLS: Tool[] = [
     tags: ["hash", "sha256", "sha384", "sha3", "blake2", "hmac", "md5", "webhook", "criptografia"],
   },
   {
+    id: "estampas",
+    name: "Estúdio de Estampas",
+    description:
+      "Prepare arte para camisetas: DPI, remover pretos, presets DTF e camisa preta, export PNG/WebP",
+    category: "Images",
+    href: "/tools/estampas",
+    icon: "Shirt",
+    tags: ["estampa", "camiseta", "dtf", "sublimação", "knockout", "imagem", "sharp"],
+    isNew: true,
+  },
+  {
     id: "colors",
     name: "Conversor de Cores",
     description: "Converta entre HEX, RGB, HSL, HSV e CMYK com preview",

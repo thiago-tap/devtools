@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   Binary, Braces, Bot, Calculator, Clock, Database, FileCode2, FileText, FileType,
   Fingerprint, GitCompare, Globe, Hash, Key, KeyRound, Palette, Regex, Server,
-  ShieldCheck, Timer, Variable, Wrench,
+  ShieldCheck, Shirt, Timer, Variable, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TOOLS } from "@/lib/tools";
@@ -14,7 +14,7 @@ import type { ToolCategory } from "@/types";
 const ICONS: Record<string, React.ElementType> = {
   Binary, Braces, Bot, Calculator, Clock, Database, FileCode2, FileText, FileType,
   Fingerprint, GitCompare, Globe, Hash, Key, KeyRound, Palette,
-  Regex, Server, ShieldCheck, Timer, Variable,
+  Regex, Server, ShieldCheck, Shirt, Timer, Variable,
 };
 
 const CATEGORY_LABELS: Record<ToolCategory, string> = {
@@ -24,12 +24,24 @@ const CATEGORY_LABELS: Record<ToolCategory, string> = {
   Encoding: "Codificação",
   Security: "Segurança",
   Colors: "Cores",
+  Images: "Imagens",
   Database: "Banco de Dados",
   Utilities: "Utilitários",
   Network: "Rede",
 };
 
-const CATEGORY_ORDER: ToolCategory[] = ["JSON", "Code", "Text", "Encoding", "Security", "Colors", "Database", "Utilities", "Network"];
+const CATEGORY_ORDER: ToolCategory[] = [
+  "JSON",
+  "Code",
+  "Text",
+  "Encoding",
+  "Security",
+  "Colors",
+  "Images",
+  "Database",
+  "Utilities",
+  "Network",
+];
 
 export function Sidebar() {
   const pathname = usePathname();

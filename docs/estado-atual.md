@@ -2,14 +2,14 @@
 
 ## Visão geral
 
-O **DevToolbox** é uma caixa de ferramentas web gratuita para desenvolvedores. A maior parte do processamento ocorre **no navegador** (privacidade, sem upload). Recursos que precisam de rede ou IA usam **API Routes** executadas no **Cloudflare Workers** via OpenNext.
+O **DevToolbox** é uma caixa de ferramentas web gratuita para desenvolvedores. A maior parte do processamento ocorre **no navegador** (privacidade, sem upload). Recursos que precisam de rede, IA ou processamento de imagem usam **API Routes** no servidor **Node.js** (Easypanel / Docker).
 
 | Item | Valor |
 |------|--------|
-| URL produção | https://devtools.catiteo.com (migrar DNS → Easypanel) |
+| URL produção | https://devtools.catiteo.com |
 | Branch principal | `main` |
-| Versão package | `1.0.0` |
-| Hospedagem alvo | Easypanel / Docker (Node 20) |
+| Versão package | `1.0.1` |
+| Hospedagem | Easypanel / Docker (Node 20) |
 
 ---
 
@@ -20,9 +20,10 @@ Frontend     Next.js 15 (App Router) + React 19 + TypeScript
 Estilo       Tailwind CSS + componentes UI (shadcn-style)
 Hospedagem   Easypanel / Docker (Node 20)
 Runtime API  Next.js Route Handlers (Node)
-IA           lib/ai/client.ts — OpenAI-compatible ou Ollama (env)
+IA           lib/ai/client.ts — OpenAI-compatible / OpenRouter / Ollama
+Imagens      Sharp (lib/images) — Estúdio de Estampas
 Build deploy Dockerfile (output: standalone)
-Testes       Vitest (lib/tools)
+Testes       Vitest (lib/tools, lib/images)
 ```
 
 ### Scripts principais
@@ -41,70 +42,73 @@ Testes       Vitest (lib/tools)
 |---------|--------|
 | `Dockerfile` | Imagem de produção (standalone) |
 | `docker-compose.yml` | Stack local |
-| `.env.example` | Variáveis (IA, URL pública) |
+| `.env.example` | Variáveis (IA, URL pública, `MAX_UPLOAD_MB`) |
 | `next.config.js` | `output: standalone`, images unoptimized |
 | `docs/legacy/cloudflare-wrangler.toml` | Referência do deploy Cloudflare anterior |
 
 ---
 
-## Ferramentas disponíveis (21)
+## Ferramentas disponíveis (22)
 
 Catálogo central: `lib/tools.ts`. Cada ferramenta tem rota em `app/tools/<id>/` com `page.tsx` e `layout.tsx` (SEO).
 
 ### Por categoria
 
-| ID | Nome | Rota | Client-side | IA |
-|----|------|------|-------------|-----|
-| json | Formatador JSON | `/tools/json` | Sim | Sim (explain) |
-| yaml | YAML ↔ JSON | `/tools/yaml` | Sim* | Não |
-| regex | Testador Regex | `/tools/regex` | Sim | Sim |
-| diff | Comparador de Texto | `/tools/diff` | Sim | Não |
-| markdown | Preview Markdown | `/tools/markdown` | Sim | Não |
-| base64 | Base64 / URL / HTML | `/tools/base64` | Sim | Não |
-| jwt | Decodificador JWT | `/tools/jwt` | Sim | Não |
-| secrets | Gerador de Secrets | `/tools/secrets` | Sim | Não |
-| hash | Gerador de Hash | `/tools/hash` | Sim | Não |
-| password | Gerador de Senha | `/tools/password` | Sim | Não |
-| colors | Conversor de Cores | `/tools/colors` | Sim | Não |
-| code-review | Revisão de Código IA | `/tools/code-review` | Não | Sim |
-| sql | Formatador SQL | `/tools/sql` | Sim | Sim |
-| env | Formatador .env | `/tools/env` | Sim | Não |
-| base-converter | Conversor de bases | `/tools/base-converter` | Sim | Não |
-| cron | Interpretador Cron | `/tools/cron` | Sim | Não |
-| timestamp | Conversor Timestamp | `/tools/timestamp` | Sim | Não |
-| mime | MIME Types | `/tools/mime` | Sim | Não |
-| uuid | Gerador UUID | `/tools/uuid` | Sim | Não |
-| dns | DNS Check | `/tools/dns` | Não | Não |
-| headers | HTTP Headers | `/tools/headers` | Não | Não |
+| ID | Nome | Rota | Client-side | Servidor |
+|----|------|------|-------------|----------|
+| json | Formatador JSON | `/tools/json` | Sim | IA (explain) |
+| yaml | YAML ↔ JSON | `/tools/yaml` | Sim* | — |
+| regex | Testador Regex | `/tools/regex` | Sim | IA |
+| diff | Comparador de Texto | `/tools/diff` | Sim | — |
+| markdown | Preview Markdown | `/tools/markdown` | Sim | — |
+| base64 | Base64 / URL / HTML | `/tools/base64` | Sim | — |
+| jwt | Decodificador JWT | `/tools/jwt` | Sim | — |
+| secrets | Gerador de Secrets | `/tools/secrets` | Sim | — |
+| hash | Gerador de Hash | `/tools/hash` | Sim | — |
+| password | Gerador de Senha | `/tools/password` | Sim | — |
+| colors | Conversor de Cores | `/tools/colors` | Sim | — |
+| code-review | Revisão de Código IA | `/tools/code-review` | Não | IA |
+| sql | Formatador SQL | `/tools/sql` | Sim | IA |
+| env | Formatador .env | `/tools/env` | Sim | — |
+| base-converter | Conversor de bases | `/tools/base-converter` | Sim | — |
+| cron | Interpretador Cron | `/tools/cron` | Sim | — |
+| timestamp | Conversor Timestamp | `/tools/timestamp` | Sim | — |
+| mime | MIME Types | `/tools/mime` | Sim | — |
+| uuid | Gerador UUID | `/tools/uuid` | Sim | — |
+| dns | DNS Check | `/tools/dns` | Não | API |
+| headers | HTTP Headers | `/tools/headers` | Não | API |
+| **estampas** | **Estúdio de Estampas** | `/tools/estampas` | Não | **Sharp** |
 
-\* **YAML:** import dinâmico do pacote `yaml` + `ssr: false` para evitar erro 500 no Worker (ver [limitacoes-cloudflare.md](./limitacoes-cloudflare.md)).
+\* **YAML:** import dinâmico do pacote `yaml` + `ssr: false`.
 
-### Destaques por ferramenta
+### Estúdio de Estampas (MVP)
 
-**Hash** (`lib/tools/hash.ts`): MD5, SHA-1/256/384/512, SHA3-256/512, BLAKE2b, HMAC-SHA256/384/512; upload de arquivo; comparação de hashes (`@noble/hashes`).
+- **UI:** `/tools/estampas` — upload, abas Presets / Redimensionar / Cores / Exportar
+- **API:** `POST /api/images/process` — ações `metadata`, `resize`, `convert`, `knockout`, `knockout_dark`, `preset_dtf`, `preset_camisa_preta`
+- **Presets:** DTF (300 DPI, PNG) e Camisa preta (remove pretos + knockout)
+- **Limite:** `MAX_UPLOAD_MB` (padrão 25 MB), rate limit por IP
 
-**Secrets** (`lib/tools/secrets.ts`): equivalente a `openssl rand` (base64/hex, presets de tamanho).
-
-**Hash / Secrets / YAML / env / base-converter:** testes Vitest em `lib/tools/*.test.ts`.
+Ver [estudio-estampas.md](./estudio-estampas.md) e [roadmap.md](./roadmap.md).
 
 ---
 
 ## APIs server-side
 
-| Rota | Método | Função | Dependência Cloudflare |
-|------|--------|--------|------------------------|
-| `/api/ai/explain` | POST | Explica JSON, regex, SQL | Workers AI binding `AI` |
-| `/api/ai/convert` | POST | Converte código entre linguagens | Workers AI |
-| `/api/ai/review` | POST | Revisão de código | Workers AI |
-| `/api/dns` | GET | Consulta DNS (DoH) | Não (usa cloudflare-dns.com) |
-| `/api/headers` | GET | Inspeciona headers HTTP | Não |
+| Rota | Método | Função |
+|------|--------|--------|
+| `/api/ai/explain` | POST | Explica JSON, regex, SQL |
+| `/api/ai/convert` | POST | Converte código entre linguagens |
+| `/api/ai/review` | POST | Revisão de código |
+| `/api/dns` | GET | Consulta DNS (DoH) |
+| `/api/headers` | GET | Inspeciona headers HTTP |
+| `/api/images/process` | POST | Processamento de imagens (Sharp) |
 
-### Segurança das APIs (`lib/api/security.ts`)
+### Segurança (`lib/api/security.ts`, `lib/api/image-upload.ts`)
 
-- Rate limit por IP
-- Limite de tamanho do body JSON
+- Rate limit por IP (JSON e multipart)
+- Limite de tamanho do body / upload
 - DNS: bloqueio de IPs privados / SSRF
-- Headers: validação de URL
+- Imagens: MIME permitidos (PNG, JPEG, WebP, GIF)
 
 ---
 
@@ -114,40 +118,28 @@ Catálogo central: `lib/tools.ts`. Cada ferramenta tem rota em `app/tools/<id>/`
 app/
   page.tsx              # Home com busca e favoritos
   privacidade/          # Política de privacidade
-  api/                  # Rotas server (edge)
+  api/                  # Rotas server (Node)
+    ai/                 # explain, convert, review
+    images/process/     # Estúdio de Estampas
   tools/*/              # Uma pasta por ferramenta
 components/
   layout/               # ToolLayout, sidebar, shell
-  home/                 # tools-explorer (busca + favoritos)
-  tools/                # CopyButton, etc.
+  home/                 # tools-explorer
 lib/
-  tools.ts              # Catálogo de ferramentas
-  tools/                # Lógica pura (hash, yaml, secrets, …)
-  api/security.ts       # Guards das APIs
-  hooks/                # use-favorites, use-debounced-value
-  seo.ts                # Metadados
-public/
-  manifest.json         # PWA
-  icon.svg
+  tools.ts              # Catálogo
+  tools/                # Lógica client-side
+  images/               # Sharp: process, color, constants
+  api/                  # security, image-upload
+  ai/client.ts          # OpenAI-compatible
 ```
 
 ---
 
-## UX e SEO
+## Próximas fases (não implementadas)
 
-- **Home:** busca por nome/tags, favoritos em `localStorage` (`lib/hooks/use-favorites.ts`)
-- **SEO:** `layout.tsx` por ferramenta + `lib/seo.ts`
-- **PWA:** `public/manifest.json`
-- **Privacidade:** página `/privacidade` descreve uso de Workers AI e APIs de rede
+- Remover fundo (rembg / ONNX)
+- Halftone para silk screen
+- Vetorização (vtracer / potrace)
+- Pipeline em lote
 
----
-
-## O que ainda não existe
-
-- Módulo de **imagens** (compressão, fundo, vetor, halftone)
-- **Estúdio de estampas** para camisetas
-- Processamento com **Sharp**, **rembg**, **potrace/vtracer**
-- Deploy em **Easypanel** / Node completo
-- Substituição planejada do Workers AI por provedor configurável no VPS
-
-Ver [estudio-estampas.md](./estudio-estampas.md) e [roadmap.md](./roadmap.md).
+Ver [roadmap.md](./roadmap.md).

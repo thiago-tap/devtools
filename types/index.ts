@@ -16,6 +16,7 @@ export type ToolCategory =
   | "Text"
   | "Encoding"
   | "Colors"
+  | "Images"
   | "Security"
   | "Database"
   | "Utilities"

@@ -48,10 +48,22 @@ O primeiro build pode levar **3–8 minutos** (`npm ci` + `next build`).
 
 | Campo | Valor |
 |-------|--------|
-| Porta interna do container | **3000** |
+| Porta publicada do app (container) | **3000** |
 | Protocolo | HTTP |
 
 O `Dockerfile` expõe `PORT=3000` e `HOSTNAME=0.0.0.0`.
+
+### Domínios — destino interno (importante)
+
+Ao editar **Domínios** → **Detalhes** → **Destino**:
+
+| Campo | Valor |
+|-------|--------|
+| Protocolo | HTTP |
+| **Porta** | **3000** (não use 80) |
+| Caminho | `/` |
+
+O Next.js escuta na **3000**. Se o destino estiver em **80**, o site retorna *Service is not reachable*.
 
 ---
 
@@ -69,7 +81,10 @@ NEXT_PUBLIC_APP_NAME=DevToolbox
 
 OPENAI_API_KEY=<sua-chave-openrouter>
 OPENAI_BASE_URL=https://openrouter.ai/api/v1
-AI_MODEL=meta-llama/llama-3.1-8b-instruct
+AI_MODEL=meta-llama/llama-3.3-70b-instruct:free
+
+# Opcional — Estúdio de Estampas (upload)
+MAX_UPLOAD_MB=25
 ```
 
 **Importante:** `NEXT_PUBLIC_*` são embutidas no build. Se mudar a URL depois, faça **Rebuild** do serviço.
@@ -82,20 +97,13 @@ AI_MODEL=meta-llama/llama-3.1-8b-instruct
 2. Adicione: `devtools.catiteo.com`
 3. O Easypanel mostra o destino DNS (CNAME ou IP)
 
-### DNS (Cloudflare ou outro)
-
-**Opção A — CNAME (comum no Easypanel)**
+### DNS (Hostinger ou outro)
 
 | Tipo | Nome | Destino |
 |------|------|---------|
-| CNAME | `devtools` | hostname indicado pelo Easypanel |
+| **A** | `devtools` | IP público do VPS (ex.: `72.61.39.163`) |
 
-**Opção B — Proxy Cloudflare**
-
-- Pode deixar proxy laranja **ativado**
-- SSL/TLS: **Full** ou **Full (strict)**
-
-Remova ou pause o CNAME antigo para `*.pages.dev` (Cloudflare Pages) quando o Easypanel estiver OK.
+SSL: Easypanel → domínio → aba **SSL** → `letsencrypt`. Libere portas **80** e **443** no firewall do VPS.
 
 ---
 
@@ -117,6 +125,7 @@ URL temporária do Easypanel (ex.: `https://devtools.sistemasdev.easypanel.host`
 | YAML | `/tools/yaml` — sem erro 500 |
 | Hash | `/tools/hash` |
 | IA | `/tools/json` → explicar com IA |
+| Estampas | `/tools/estampas` → upload + preset DTF |
 | DNS | `/tools/dns` → `google.com` |
 
 Se IA retornar 503: confira `OPENAI_API_KEY` e logs do container.
@@ -130,9 +139,14 @@ Se IA retornar 503: confira `OPENAI_API_KEY` e logs do container.
 - Aumente RAM do VPS ou limite paralelismo
 - O stage `npm run build` do Next.js é o mais pesado
 
+### 502 / Service is not reachable
+
+- Porta do **Destino** no domínio deve ser **3000** (não 80)
+- Porta publicada do app no serviço: **3000**
+- Veja logs: `Ready on 0.0.0.0:3000`
+
 ### 502 Bad Gateway
 
-- Porta do serviço deve ser **3000**
 - Veja logs do container: `Error: listen EADDRINUSE` ou crash no boot
 
 ### IA não funciona
@@ -152,4 +166,4 @@ Se IA retornar 503: confira `OPENAI_API_KEY` e logs do container.
 
 Cada `git push` na `main` (com Auto Deploy) reconstrói e publica.
 
-Próximo módulo planejado: **Estúdio de Estampas** — ver [estudio-estampas.md](./estudio-estampas.md).
+**Estúdio de Estampas** (MVP): [estudio-estampas.md](./estudio-estampas.md) · rota `/tools/estampas`

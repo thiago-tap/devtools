@@ -25,10 +25,11 @@ As ferramentas com **IA** usam um provedor configurável no servidor (**OpenAI-c
 
 ---
 
-## Ferramentas disponíveis (21)
+## Ferramentas disponíveis (22)
 
 | Ferramenta | Categoria | IA | Client-side |
 | --- | --- | --- | --- |
+| Estúdio de Estampas | Imagens | Não | Não (API Sharp) |
 | Formatador JSON | JSON | Sim | Sim |
 | YAML ↔ JSON | JSON | Não | Sim |
 | Testador de Regex | Texto | Sim | Sim |

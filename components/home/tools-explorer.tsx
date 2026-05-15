@@ -23,6 +23,7 @@ import {
   Search,
   Server,
   ShieldCheck,
+  Shirt,
   Star,
   Timer,
   Variable,
@@ -41,6 +42,7 @@ const CATEGORY_LABELS: Record<ToolCategory, string> = {
   Encoding: "Codificação",
   Security: "Segurança",
   Colors: "Cores",
+  Images: "Imagens",
   Database: "Banco de Dados",
   Utilities: "Utilitários",
   Network: "Rede",
@@ -66,6 +68,7 @@ const ICONS: Record<string, React.ElementType> = {
   Regex,
   Server,
   ShieldCheck,
+  Shirt,
   Timer,
   Variable,
 };
