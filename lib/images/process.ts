@@ -12,7 +12,7 @@ import {
   type OutputFormat,
 } from "@/lib/images/constants";
 import { halftoneImage, type HalftoneMode } from "@/lib/images/halftone";
-import { rasterToSvgPotrace } from "@/lib/images/vectorize";
+import { rasterToEpsPotrace, rasterToSvgPotrace } from "@/lib/images/vectorize";
 
 export type { HalftoneMode } from "@/lib/images/halftone";
 
@@ -98,7 +98,13 @@ export async function convertImage(input: Buffer, opts: ConvertOptions): Promise
       return pipeline.jpeg({ quality, mozjpeg: true }).toBuffer();
     case "webp":
       return pipeline.webp({ quality }).toBuffer();
-    default:
+    case "avif":
+      return pipeline.avif({ quality, effort: 6 }).toBuffer();
+    case "tiff":
+      return pipeline.tiff({ compression: "lzw", quality }).toBuffer();
+    case "png8":
+      return pipeline.png({ palette: true, colors: 256, effort: 10 }).toBuffer();
+    case "png":
       return pipeline.png().toBuffer();
   }
 }
@@ -217,6 +223,40 @@ export async function vectorizeToSvg(
   return rasterToSvgPotrace(input, opts);
 }
 
+/** Monocromático → EPS (potrace `-e`). */
+export async function vectorizeToEps(
+  input: Buffer,
+  opts: { threshold?: number; turdsize?: number }
+): Promise<Buffer> {
+  return rasterToEpsPotrace(input, opts);
+}
+
+/** Canal alfa como PNG em tons de cinza (máscara de tinta). */
+export async function alphaMaskGrayscale(input: Buffer): Promise<Buffer> {
+  return sharp(input).rotate().ensureAlpha().extractChannel("alpha").png().toBuffer();
+}
+
+/** Inverte RGB mantendo o alfa (útil para chapa / prova). */
+export async function invertRgbKeepAlpha(input: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(input)
+    .rotate()
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 255 - data[i]!;
+    data[i + 1] = 255 - data[i + 1]!;
+    data[i + 2] = 255 - data[i + 2]!;
+  }
+
+  return sharp(data, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+}
+
 /** Preset silk: halftone + resize opcional em cm. */
 export async function presetSilk(
   input: Buffer,
@@ -234,17 +274,3 @@ export async function presetSilk(
   return buf;
 }
 
-export function mimeForFormat(format: OutputFormat): string {
-  switch (format) {
-    case "jpeg":
-      return "image/jpeg";
-    case "webp":
-      return "image/webp";
-    default:
-      return "image/png";
-  }
-}
-
-export function extensionForFormat(format: OutputFormat): string {
-  return format === "jpeg" ? "jpg" : format;
-}

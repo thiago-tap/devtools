@@ -3,6 +3,8 @@ import {
   ALLOWED_IMAGE_MIMES,
   MAX_UPLOAD_BYTES,
   MAX_UPLOAD_MB,
+  type OutputFormat,
+  rasterDownloadParts,
 } from "@/lib/images/constants";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/security";
 
@@ -63,7 +65,7 @@ export async function parseImageUpload(
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "Formato não suportado. Use PNG, JPEG ou WebP." },
+        { error: "Formato não suportado. Use PNG, JPEG, WebP ou GIF." },
         { status: 400 }
       ),
     };
@@ -86,19 +88,32 @@ export async function parseImageUpload(
   };
 }
 
-export function imageResponse(
-  buffer: Buffer,
-  format: "png" | "jpeg" | "webp",
-  baseName: string
-): NextResponse {
-  const ext = format === "jpeg" ? "jpg" : format;
-  const mime =
-    format === "jpeg" ? "image/jpeg" : format === "webp" ? "image/webp" : "image/png";
-
+export function imageResponse(buffer: Buffer, format: OutputFormat, baseName: string): NextResponse {
+  const { contentType, ext } = rasterDownloadParts(format);
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
-      "Content-Type": mime,
+      "Content-Type": contentType,
       "Content-Disposition": `attachment; filename="${baseName}.${ext}"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+export function pdfResponse(buffer: Buffer, baseName: string): NextResponse {
+  return new NextResponse(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${baseName}.pdf"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+export function epsResponse(buffer: Buffer, baseName: string): NextResponse {
+  return new NextResponse(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "application/postscript",
+      "Content-Disposition": `attachment; filename="${baseName}.eps"`,
       "Cache-Control": "no-store",
     },
   });

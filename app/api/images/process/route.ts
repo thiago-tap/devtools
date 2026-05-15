@@ -1,14 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
 import {
+  epsResponse,
   imageResponse,
   parseImageUpload,
   parseNumberField,
   parseOptionalNumber,
+  pdfResponse,
   svgResponse,
   withImageApiGuards,
 } from "@/lib/api/image-upload";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/security";
-import type { OutputFormat } from "@/lib/images/constants";
+import { parseOutputFormat } from "@/lib/images/constants";
 import type { HalftoneMode } from "@/lib/images/halftone";
 import { parsePipelineJson, runImagePipeline } from "@/lib/images/pipeline";
 import {
@@ -18,9 +20,11 @@ import {
   removeBackgroundViaRembg,
 } from "@/lib/images/rembg";
 import {
+  alphaMaskGrayscale,
   convertImage,
   getImageMetadata,
   halftoneRaster,
+  invertRgbKeepAlpha,
   knockoutColor,
   knockoutColorEdgeFlood,
   knockoutDarkColors,
@@ -28,20 +32,15 @@ import {
   presetDtf,
   presetSilk,
   resizeImage,
+  vectorizeToEps,
   vectorizeToSvg,
 } from "@/lib/images/process";
+import { buildProofPdf } from "@/lib/images/proof-pdf";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   return NextResponse.json({ rembg: isRembgConfigured() });
-}
-
-function parseFormat(fields: Record<string, string>): OutputFormat {
-  const f = fields.format?.toLowerCase();
-  if (f === "jpeg" || f === "jpg") return "jpeg";
-  if (f === "webp") return "webp";
-  return "png";
 }
 
 export async function POST(request: NextRequest) {
@@ -95,7 +94,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "convert": {
-        const format = parseFormat(fields);
+        const format = parseOutputFormat(fields.format);
         const out = await convertImage(buffer, {
           format,
           quality: parseNumberField(fields, "quality"),
@@ -178,11 +177,34 @@ export async function POST(request: NextRequest) {
       }
 
       case "vectorize": {
+        const wantEps = (fields.vectorFormat ?? fields.vector_format ?? "svg").toLowerCase().trim() === "eps";
+        if (wantEps) {
+          const out = await vectorizeToEps(buffer, {
+            threshold: parseOptionalNumber(fields, "threshold") ?? 128,
+            turdsize: parseOptionalNumber(fields, "turdsize") ?? 2,
+          });
+          return epsResponse(out, `${baseName}-vetor`);
+        }
         const out = await vectorizeToSvg(buffer, {
           threshold: parseOptionalNumber(fields, "threshold") ?? 128,
           turdsize: parseOptionalNumber(fields, "turdsize") ?? 2,
         });
         return svgResponse(out, `${baseName}-vetor`);
+      }
+
+      case "alpha_mask": {
+        const out = await alphaMaskGrayscale(buffer);
+        return imageResponse(out, "png", `${baseName}-mascara-alfa`);
+      }
+
+      case "negative_plate": {
+        const out = await invertRgbKeepAlpha(buffer);
+        return imageResponse(out, "png", `${baseName}-negativo`);
+      }
+
+      case "proof_pdf": {
+        const out = await buildProofPdf(buffer, { fileLabel: fileName });
+        return pdfResponse(out, `${baseName}-prova`);
       }
 
       case "preset_silk": {
@@ -199,11 +221,25 @@ export async function POST(request: NextRequest) {
 
       case "pipeline": {
         const steps = parsePipelineJson(fields.pipeline ?? "");
-        const { buffer: out, isSvg } = await runImagePipeline(buffer, { fileName, mime }, steps);
-        if (isSvg) {
-          return svgResponse(out, `${baseName}-pipeline`);
+        const { buffer: out, resultKind, rasterFormat } = await runImagePipeline(
+          buffer,
+          { fileName, mime },
+          steps
+        );
+        switch (resultKind) {
+          case "svg":
+            return svgResponse(out, `${baseName}-pipeline`);
+          case "eps":
+            return epsResponse(out, `${baseName}-pipeline`);
+          case "pdf":
+            return pdfResponse(out, `${baseName}-pipeline`);
+          case "raster":
+            return imageResponse(out, rasterFormat, `${baseName}-pipeline`);
+          default: {
+            const _x: never = resultKind;
+            return NextResponse.json({ error: `Tipo de saída inválido: ${_x}` }, { status: 500 });
+          }
         }
-        return imageResponse(out, "png", `${baseName}-pipeline`);
       }
 
       default:

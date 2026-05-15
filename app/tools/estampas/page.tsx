@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import JSZip from "jszip";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Download, ImageIcon, Layers, Loader2, Pipette, Shirt, Upload, Wand2 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
+import type { OutputFormat } from "@/lib/images/constants";
 
 declare global {
   interface Window {
@@ -65,6 +67,12 @@ async function callImageApi(
   return { blob: await res.blob() };
 }
 
+function extForDownload(format: OutputFormat): string {
+  if (format === "jpeg") return "jpg";
+  if (format === "png8") return "png";
+  return format;
+}
+
 function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -87,8 +95,9 @@ export default function EstampasPage() {
   const [dpi, setDpi] = useState("300");
   const [knockColor, setKnockColor] = useState("#000000");
   const [tolerance, setTolerance] = useState("40");
-  const [exportFormat, setExportFormat] = useState<"png" | "jpeg" | "webp">("png");
+  const [exportFormat, setExportFormat] = useState<OutputFormat>("png");
   const [quality, setQuality] = useState("90");
+  const [lastDownloadName, setLastDownloadName] = useState("arte-processada.png");
 
   const [rembgAvailable, setRembgAvailable] = useState<boolean | null>(null);
   const [pickColorFromPreview, setPickColorFromPreview] = useState(false);
@@ -173,6 +182,7 @@ export default function EstampasPage() {
     setFile(f);
     setPreview(URL.createObjectURL(f));
     setPickColorFromPreview(false);
+    setLastDownloadName("arte-processada.png");
     await loadMeta(f);
   };
 
@@ -190,8 +200,13 @@ export default function EstampasPage() {
         return;
       }
       setLastResult(blob);
-      setPreview(URL.createObjectURL(blob));
+      const skipPreview =
+        blob.type.includes("pdf") || blob.type.includes("postscript");
+      if (!skipPreview) {
+        setPreview(URL.createObjectURL(blob));
+      }
       downloadBlob(blob, downloadName);
+      setLastDownloadName(downloadName);
     } finally {
       setLoading(false);
     }
@@ -220,10 +235,17 @@ export default function EstampasPage() {
         setError(err ?? "Sem resultado");
         return;
       }
-      const ext = blob.type.includes("svg") ? "svg" : "png";
+      const ext =
+        blob.type.includes("pdf") ? "pdf" : blob.type.includes("svg") ? "svg" : blob.type.includes("postscript") ? "eps" : blob.type.includes("webp") ? "webp" : blob.type.includes("jpeg") ? "jpg" : blob.type.includes("avif") ? "avif" : blob.type.includes("tiff") ? "tiff" : "png";
+      const name = `pipeline-${(file.name.replace(/\.[^.]+$/, "") || "arte")}.${ext}`;
       setLastResult(blob);
-      setPreview(URL.createObjectURL(blob));
-      downloadBlob(blob, `pipeline-${(file.name.replace(/\.[^.]+$/, "") || "arte")}.${ext}`);
+      const skipPreview =
+        blob.type.includes("pdf") || blob.type.includes("postscript");
+      if (!skipPreview) {
+        setPreview(URL.createObjectURL(blob));
+      }
+      downloadBlob(blob, name);
+      setLastDownloadName(name);
     } finally {
       setLoading(false);
     }
@@ -243,6 +265,20 @@ export default function EstampasPage() {
     setError("");
   };
 
+  const downloadPipelineRecipeJson = () => {
+    const raw = pipelineJson.trim();
+    try {
+      JSON.parse(raw);
+    } catch {
+      setError("JSON inválido para exportar.");
+      return;
+    }
+    const slug = (recipeName.trim() || "receita-pipeline").replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_]/g, "");
+    const blob = new Blob([raw], { type: "application/json;charset=utf-8" });
+    downloadBlob(blob, `${slug}.json`);
+    setError("");
+  };
+
   const runPipelineBatch = async () => {
     const list = batchInputRef.current?.files;
     if (!list?.length) {
@@ -259,6 +295,7 @@ export default function EstampasPage() {
     setLoading(true);
     setError("");
     try {
+      const zip = new JSZip();
       for (let i = 0; i < list.length; i++) {
         const f = list.item(i)!;
         const { blob, error: err } = await callImageApi(f, {
@@ -269,10 +306,30 @@ export default function EstampasPage() {
           setError(`${f.name}: ${err ?? "falhou"}`);
           return;
         }
-        const ext = blob.type.includes("svg") ? "svg" : "png";
+        const ext =
+          blob.type.includes("pdf")
+            ? "pdf"
+            : blob.type.includes("svg")
+              ? "svg"
+              : blob.type.includes("postscript")
+                ? "eps"
+                : blob.type.includes("webp")
+                  ? "webp"
+                  : blob.type.includes("jpeg")
+                    ? "jpg"
+                    : blob.type.includes("avif")
+                      ? "avif"
+                      : blob.type.includes("tiff")
+                        ? "tiff"
+                        : "png";
         const base = f.name.replace(/\.[^.]+$/, "") || `arte-${i}`;
-        downloadBlob(blob, `pipeline-${base}.${ext}`);
+        zip.file(`pipeline-${base}.${ext}`, blob);
       }
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const zipName = `lote-pipeline-${Date.now()}.zip`;
+      downloadBlob(zipBlob, zipName);
+      setLastResult(zipBlob);
+      setLastDownloadName(zipName);
     } finally {
       setLoading(false);
     }
@@ -794,7 +851,7 @@ export default function EstampasPage() {
       )}
 
       {tab === "vetor" && (
-        <Panel title="Vetorizar (SVG)">
+        <Panel title="Vetorizar (SVG / EPS)">
           <p className="text-sm text-muted-foreground mb-4">
             Monocromático via <strong>potrace</strong> no servidor (imagem Docker inclui o binário).
             Ajuste o limiar se o traço sumir ou ficar cheio de ruído.
@@ -823,6 +880,23 @@ export default function EstampasPage() {
             >
               Baixar SVG
             </Button>
+            <Button
+              disabled={loading || !file}
+              variant="secondary"
+              onClick={() =>
+                run(
+                  {
+                    action: "vectorize",
+                    vectorFormat: "eps",
+                    threshold: vectorThreshold,
+                    turdsize: vectorTurd,
+                  },
+                  `vetor-${(file?.name ?? "arte").replace(/\.[^.]+$/, "")}.eps`
+                )
+              }
+            >
+              Baixar EPS
+            </Button>
           </div>
         </Panel>
       )}
@@ -832,7 +906,9 @@ export default function EstampasPage() {
           <p className="text-sm text-muted-foreground mb-3">
             Array JSON de passos com <code className="text-xs">action</code> e campos iguais ao
             formulário da API. Passos com Rembg exigem <code className="text-xs">REMBG_BASE_URL</code>.
-            Último passo com <code className="text-xs">vectorize</code> devolve SVG.
+            Último passo <code className="text-xs">vectorize</code> pode devolver SVG (padrão) ou EPS (
+            <code className="text-xs">vectorFormat: &quot;eps&quot;</code>). Passo{" "}
+            <code className="text-xs">proof_pdf</code> gera PDF de prova.
           </p>
           <Textarea
             className="font-mono text-xs min-h-[180px] mb-4"
@@ -851,6 +927,9 @@ export default function EstampasPage() {
               </div>
               <Button type="button" variant="outline" onClick={() => saveCurrentRecipe()}>
                 Guardar no navegador
+              </Button>
+              <Button type="button" variant="outline" onClick={() => downloadPipelineRecipeJson()}>
+                Descarregar JSON
               </Button>
             </div>
             <div className="w-full sm:w-56">
@@ -879,7 +958,8 @@ export default function EstampasPage() {
           <div className="rounded-lg border p-4 space-y-3">
             <p className="text-sm font-medium">Lote (vários ficheiros)</p>
             <p className="text-xs text-muted-foreground">
-              Usa o mesmo JSON em cada ficheiro. Os downloads disparam em sequência.
+              Um ficheiro ZIP com todos os resultados (PNG, WebP, SVG, EPS ou PDF conforme o
+              pipeline).
             </p>
             <input
               ref={batchInputRef}
@@ -889,7 +969,7 @@ export default function EstampasPage() {
               className="text-sm"
             />
             <Button type="button" variant="secondary" disabled={loading} onClick={() => void runPipelineBatch()}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Processar lote"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Processar lote (ZIP)"}
             </Button>
           </div>
         </Panel>
@@ -898,17 +978,29 @@ export default function EstampasPage() {
       {tab === "exportar" && (
         <Panel title="Converter formato">
           <div className="flex gap-2 flex-wrap items-end">
-            {(["png", "jpeg", "webp"] as const).map((f) => (
+            {(
+              [
+                ["png", "PNG"],
+                ["jpeg", "JPEG"],
+                ["webp", "WebP"],
+                ["avif", "AVIF"],
+                ["tiff", "TIFF"],
+                ["png8", "PNG-8"],
+              ] as const
+            ).map(([value, label]) => (
               <Button
-                key={f}
+                key={value}
                 size="sm"
-                variant={exportFormat === f ? "default" : "outline"}
-                onClick={() => setExportFormat(f)}
+                variant={exportFormat === value ? "default" : "outline"}
+                onClick={() => setExportFormat(value)}
               >
-                {f.toUpperCase()}
+                {label}
               </Button>
             ))}
-            {exportFormat !== "png" && (
+            {(exportFormat === "jpeg" ||
+              exportFormat === "webp" ||
+              exportFormat === "avif" ||
+              exportFormat === "tiff") && (
               <div className="w-20">
                 <label className="text-xs text-muted-foreground">Qualidade</label>
                 <Input value={quality} onChange={(e) => setQuality(e.target.value)} />
@@ -924,11 +1016,47 @@ export default function EstampasPage() {
                     quality,
                     dpi,
                   },
-                  `export.${exportFormat === "jpeg" ? "jpg" : exportFormat}`
+                  `export.${extForDownload(exportFormat)}`
                 )
               }
             >
               Exportar
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3 mb-2">Máscara, chapa e prova</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={loading || !file}
+              onClick={() =>
+                run({ action: "alpha_mask" }, `mascara-${(file?.name ?? "arte").replace(/\.[^.]+$/, "")}.png`)
+              }
+            >
+              Máscara alfa (PNG)
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={loading || !file}
+              onClick={() =>
+                run({ action: "negative_plate" }, `negativo-${(file?.name ?? "arte").replace(/\.[^.]+$/, "")}.png`)
+              }
+            >
+              Negativo (RGB)
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={loading || !file}
+              onClick={() =>
+                run({ action: "proof_pdf" }, `prova-${(file?.name ?? "arte").replace(/\.[^.]+$/, "")}.pdf`)
+              }
+            >
+              Prova PDF
             </Button>
           </div>
         </Panel>
@@ -941,7 +1069,7 @@ export default function EstampasPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => downloadBlob(lastResult, "arte-processada.png")}
+              onClick={() => downloadBlob(lastResult, lastDownloadName)}
             >
               <Download className="h-4 w-4 mr-1" />
               Baixar de novo

@@ -1,6 +1,11 @@
-import { removeBackgroundViaRembg } from "@/lib/images/rembg";
+import type { OutputFormat } from "@/lib/images/constants";
+import { parseOutputFormat } from "@/lib/images/constants";
+import { buildProofPdf } from "@/lib/images/proof-pdf";
 import {
+  alphaMaskGrayscale,
   convertImage,
+  halftoneRaster,
+  invertRgbKeepAlpha,
   knockoutColor,
   knockoutColorEdgeFlood,
   knockoutDarkColors,
@@ -8,13 +13,15 @@ import {
   presetDtf,
   presetSilk,
   resizeImage,
+  vectorizeToEps,
   vectorizeToSvg,
-  halftoneRaster,
 } from "@/lib/images/process";
-import type { OutputFormat } from "@/lib/images/constants";
 import type { HalftoneMode } from "@/lib/images/halftone";
+import { removeBackgroundViaRembg } from "@/lib/images/rembg";
 
 export type PipelineStep = Record<string, string> & { action: string };
+
+export type PipelineResultKind = "raster" | "svg" | "eps" | "pdf";
 
 const ALLOWED_ACTIONS = new Set([
   "resize",
@@ -30,9 +37,12 @@ const ALLOWED_ACTIONS = new Set([
   "halftone",
   "vectorize",
   "preset_silk",
+  "alpha_mask",
+  "negative_plate",
+  "proof_pdf",
 ]);
 
-const MAX_STEPS = 14;
+const MAX_STEPS = 16;
 
 function num(fields: Record<string, string>, key: string, fallback?: number): number | undefined {
   const raw = fields[key]?.trim();
@@ -41,15 +51,13 @@ function num(fields: Record<string, string>, key: string, fallback?: number): nu
   return Number.isFinite(n) ? n : fallback;
 }
 
-function parseFormat(s: string | undefined): OutputFormat {
-  const f = s?.toLowerCase();
-  if (f === "jpeg" || f === "jpg") return "jpeg";
-  if (f === "webp") return "webp";
-  return "png";
-}
-
 function parseHalftoneMode(s: string | undefined): HalftoneMode {
   return s === "ordered4" ? "ordered4" : "floyd";
+}
+
+function parseVectorFormat(f: Record<string, string>): "svg" | "eps" {
+  const raw = (f.vectorFormat ?? f.vector_format ?? "svg").toLowerCase().trim();
+  return raw === "eps" ? "eps" : "svg";
 }
 
 export function parsePipelineJson(raw: string): PipelineStep[] {
@@ -94,9 +102,10 @@ export async function runImagePipeline(
   initial: Buffer,
   ctx: { fileName: string; mime: string },
   steps: PipelineStep[]
-): Promise<{ buffer: Buffer; isSvg: boolean }> {
+): Promise<{ buffer: Buffer; resultKind: PipelineResultKind; rasterFormat: OutputFormat }> {
   let buf = initial;
-  let isSvg = false;
+  let resultKind: PipelineResultKind = "raster";
+  let rasterFormat: OutputFormat = "png";
 
   for (const step of steps) {
     const f = step as Record<string, string>;
@@ -109,16 +118,19 @@ export async function runImagePipeline(
           heightCm: num(f, "heightCm"),
           dpi: num(f, "dpi"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "convert": {
+        const fmt = parseOutputFormat(f.format);
         buf = await convertImage(buf, {
-          format: parseFormat(f.format),
+          format: fmt,
           quality: num(f, "quality", 90),
           dpi: num(f, "dpi"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = fmt;
         break;
       }
       case "knockout": {
@@ -126,7 +138,8 @@ export async function runImagePipeline(
           color: f.color?.trim() || "#000000",
           tolerance: num(f, "tolerance"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "knockout_edge": {
@@ -134,17 +147,20 @@ export async function runImagePipeline(
           color: f.color?.trim() || "#000000",
           tolerance: num(f, "tolerance"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "knockout_dark": {
         buf = await knockoutDarkColors(buf, num(f, "tolerance"));
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "remove_bg": {
         buf = await removeBackgroundViaRembg(buf, ctx.fileName, ctx.mime);
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "preset_dtf": {
@@ -153,7 +169,8 @@ export async function runImagePipeline(
           heightCm: num(f, "heightCm"),
           dpi: num(f, "dpi"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "preset_camisa_preta": {
@@ -162,7 +179,8 @@ export async function runImagePipeline(
           dpi: num(f, "dpi"),
           tolerance: num(f, "tolerance"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "preset_dtf_transparent": {
@@ -172,7 +190,8 @@ export async function runImagePipeline(
           heightCm: num(f, "heightCm"),
           dpi: num(f, "dpi"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "preset_camisa_preta_transparent": {
@@ -182,7 +201,8 @@ export async function runImagePipeline(
           dpi: num(f, "dpi"),
           tolerance: num(f, "tolerance"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "halftone": {
@@ -190,15 +210,24 @@ export async function runImagePipeline(
           mode: parseHalftoneMode(f.mode),
           dpi: num(f, "dpi"),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       case "vectorize": {
-        buf = await vectorizeToSvg(buf, {
-          threshold: num(f, "threshold", 128),
-          turdsize: num(f, "turdsize", 2),
-        });
-        isSvg = true;
+        if (parseVectorFormat(f) === "eps") {
+          buf = await vectorizeToEps(buf, {
+            threshold: num(f, "threshold", 128),
+            turdsize: num(f, "turdsize", 2),
+          });
+          resultKind = "eps";
+        } else {
+          buf = await vectorizeToSvg(buf, {
+            threshold: num(f, "threshold", 128),
+            turdsize: num(f, "turdsize", 2),
+          });
+          resultKind = "svg";
+        }
         break;
       }
       case "preset_silk": {
@@ -208,7 +237,25 @@ export async function runImagePipeline(
           dpi: num(f, "dpi"),
           halftoneMode: parseHalftoneMode(f.mode),
         });
-        isSvg = false;
+        resultKind = "raster";
+        rasterFormat = "png";
+        break;
+      }
+      case "alpha_mask": {
+        buf = await alphaMaskGrayscale(buf);
+        resultKind = "raster";
+        rasterFormat = "png";
+        break;
+      }
+      case "negative_plate": {
+        buf = await invertRgbKeepAlpha(buf);
+        resultKind = "raster";
+        rasterFormat = "png";
+        break;
+      }
+      case "proof_pdf": {
+        buf = await buildProofPdf(buf, { fileLabel: ctx.fileName });
+        resultKind = "pdf";
         break;
       }
       default:
@@ -216,5 +263,5 @@ export async function runImagePipeline(
     }
   }
 
-  return { buffer: buf, isSvg };
+  return { buffer: buf, resultKind, rasterFormat };
 }

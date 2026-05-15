@@ -63,3 +63,42 @@ export async function rasterToSvgPotrace(
     await rm(dir, { recursive: true, force: true });
   }
 }
+
+/**
+ * Raster → EPS via **potrace** (`-e`). Requer `potrace` no PATH.
+ */
+export async function rasterToEpsPotrace(
+  input: Buffer,
+  opts: { threshold?: number; turdsize?: number }
+): Promise<Buffer> {
+  const threshold = opts.threshold ?? 128;
+  const turdsize = opts.turdsize ?? 2;
+
+  const { data, info } = await sharp(input)
+    .rotate()
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { width, height } = info;
+  const pbm = toPbmP4(data, width, height, threshold);
+
+  const id = randomBytes(8).toString("hex");
+  const dir = join(tmpdir(), `potrace-eps-${id}`);
+  const inPath = join(dir, "in.pbm");
+  const outPath = join(dir, "out.eps");
+
+  await mkdir(dir, { recursive: true });
+  try {
+    await writeFile(inPath, pbm);
+    const bin = process.env.POTRACE_PATH?.trim() || "potrace";
+    await execFileAsync(bin, ["-e", "-t", String(turdsize), "-o", outPath, inPath], {
+      timeout: 120_000,
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    const eps = await readFile(outPath);
+    return eps;
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}

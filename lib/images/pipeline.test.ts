@@ -16,6 +16,18 @@ describe("pipeline", () => {
     expect(pipelineNeedsRembg(steps)).toBe(true);
   });
 
+  it("parsePipelineJson accepts proof_pdf step", () => {
+    const steps = parsePipelineJson(JSON.stringify([{ action: "proof_pdf" }]));
+    expect(steps[0]?.action).toBe("proof_pdf");
+  });
+
+  it("parsePipelineJson accepts convert avif", () => {
+    const steps = parsePipelineJson(
+      JSON.stringify([{ action: "convert", format: "avif", quality: "80" }])
+    );
+    expect(steps[0]?.format).toBe("avif");
+  });
+
   it("rejects unknown action", () => {
     expect(() => parsePipelineJson(JSON.stringify([{ action: "hack" }]))).toThrow();
   });

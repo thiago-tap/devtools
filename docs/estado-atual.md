@@ -84,8 +84,8 @@ Catálogo central: `lib/tools.ts`. Cada ferramenta tem rota em `app/tools/<id>/`
 
 ### Estúdio de Estampas (MVP + fundo + halftone + vetor + pipeline)
 
-- **UI:** `/tools/estampas` — upload, presets, redimensionar, cores, exportar, **Remover fundo**, **Halftone**, **Vetor (SVG)**, **Pipeline / lote** (receitas em `localStorage`)
-- **API:** `POST /api/images/process` — `metadata`, `resize`, `convert`, `knockout`, `knockout_dark`, `preset_dtf`, `preset_camisa_preta`, `remove_bg`, `preset_dtf_transparent`, `preset_camisa_preta_transparent`, `halftone`, `vectorize`, `preset_silk`, `pipeline` (corpo JSON no campo `pipeline`)
+- **UI:** `/tools/estampas` — upload, presets, redimensionar, cores, **exportar** (PNG/JPEG/WebP/AVIF/TIFF/PNG-8, máscara alfa, negativo, prova PDF), **Remover fundo**, **Halftone**, **Vetor (SVG/EPS)**, **Pipeline / lote** (ZIP, receitas em `localStorage`, descarregar JSON)
+- **API:** `POST /api/images/process` — `metadata`, `resize`, `convert` (incl. `avif`, `tiff`, `png8`), `knockout`, `knockout_edge`, `knockout_dark`, presets DTF/camisa, Rembg, `halftone`, `vectorize` (SVG ou EPS com `vectorFormat=eps`), `preset_silk`, `alpha_mask`, `negative_plate`, `proof_pdf`, `pipeline` (campo `pipeline`, passos alinhados com estas ações)
 - **Limite:** `MAX_UPLOAD_MB`, rate limit geral + extra por IP para ações Rembg (`REMBG_RATE_LIMIT_PER_MIN`); `pipeline` só entra no teto Rembg se o JSON incluir passos que chamam Rembg
 
 Ver [estudio-estampas.md](./estudio-estampas.md) e [roadmap.md](./roadmap.md).
