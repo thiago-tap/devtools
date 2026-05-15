@@ -104,6 +104,16 @@ export function imageResponse(
   });
 }
 
+export function svgResponse(buffer: Buffer, baseName: string): NextResponse {
+  return new NextResponse(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${baseName}.svg"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 export function parseNumberField(
   fields: Record<string, string>,
   key: string
@@ -112,4 +122,15 @@ export function parseNumberField(
   if (!raw) return undefined;
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/** Qualquer número finito (ex.: threshold 0). */
+export function parseOptionalNumber(
+  fields: Record<string, string>,
+  key: string
+): number | undefined {
+  const raw = fields[key]?.trim();
+  if (raw === undefined || raw === "") return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
 }

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Download, ImageIcon, Loader2, Pipette, Shirt, Upload, Wand2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, Download, ImageIcon, Layers, Loader2, Pipette, Shirt, Upload, Wand2 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
 
 declare global {
@@ -31,7 +32,14 @@ type ImageMeta = {
   heightCm: number | null;
 };
 
-type Tab = "ajustar" | "cores" | "exportar" | "presets" | "fundo";
+type Tab = "ajustar" | "cores" | "exportar" | "presets" | "fundo" | "halftone" | "vetor" | "pipeline";
+
+const RECIPE_LS_KEY = "devtools_estampas_recipes_v1";
+
+const DEFAULT_PIPELINE_JSON = `[
+  {"action":"resize","widthCm":"28","dpi":"300"},
+  {"action":"halftone","mode":"floyd"}
+]`;
 
 async function callImageApi(
   file: File,
@@ -85,6 +93,37 @@ export default function EstampasPage() {
   const [rembgAvailable, setRembgAvailable] = useState<boolean | null>(null);
   const [pickColorFromPreview, setPickColorFromPreview] = useState(false);
 
+  const [halftoneMode, setHalftoneMode] = useState<"floyd" | "ordered4">("floyd");
+  const [vectorThreshold, setVectorThreshold] = useState("128");
+  const [vectorTurd, setVectorTurd] = useState("2");
+  const [pipelineJson, setPipelineJson] = useState(DEFAULT_PIPELINE_JSON);
+  const [recipeName, setRecipeName] = useState("");
+  const [savedRecipes, setSavedRecipes] = useState<{ name: string; json: string }[]>([]);
+  const [recipeSelect, setRecipeSelect] = useState("");
+  const batchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RECIPE_LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as unknown;
+        if (Array.isArray(parsed)) {
+          setSavedRecipes(
+            parsed.filter(
+              (x): x is { name: string; json: string } =>
+                x &&
+                typeof x === "object" &&
+                typeof (x as { name?: string }).name === "string" &&
+                typeof (x as { json?: string }).json === "string"
+            )
+          );
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     void fetch("/api/images/process")
@@ -103,6 +142,15 @@ export default function EstampasPage() {
   useEffect(() => {
     if (tab !== "cores") setPickColorFromPreview(false);
   }, [tab]);
+
+  const persistRecipes = useCallback((list: { name: string; json: string }[]) => {
+    setSavedRecipes(list);
+    try {
+      localStorage.setItem(RECIPE_LS_KEY, JSON.stringify(list));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -144,6 +192,87 @@ export default function EstampasPage() {
       setLastResult(blob);
       setPreview(URL.createObjectURL(blob));
       downloadBlob(blob, downloadName);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runPipeline = async () => {
+    if (!file) {
+      setError("Envie uma imagem primeiro.");
+      return;
+    }
+    let pipelineStr = pipelineJson.trim();
+    try {
+      JSON.parse(pipelineStr);
+    } catch {
+      setError("JSON do pipeline inválido.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const { blob, error: err } = await callImageApi(file, {
+        action: "pipeline",
+        pipeline: pipelineStr,
+      });
+      if (err || !blob) {
+        setError(err ?? "Sem resultado");
+        return;
+      }
+      const ext = blob.type.includes("svg") ? "svg" : "png";
+      setLastResult(blob);
+      setPreview(URL.createObjectURL(blob));
+      downloadBlob(blob, `pipeline-${(file.name.replace(/\.[^.]+$/, "") || "arte")}.${ext}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveCurrentRecipe = () => {
+    try {
+      JSON.parse(pipelineJson.trim());
+    } catch {
+      setError("Guarde só JSON válido no pipeline.");
+      return;
+    }
+    const name = recipeName.trim() || `Receita ${savedRecipes.length + 1}`;
+    const next = [...savedRecipes, { name, json: pipelineJson.trim() }].slice(-25);
+    persistRecipes(next);
+    setRecipeName("");
+    setError("");
+  };
+
+  const runPipelineBatch = async () => {
+    const list = batchInputRef.current?.files;
+    if (!list?.length) {
+      setError("Selecione um ou mais ficheiros no lote.");
+      return;
+    }
+    const pipelineStr = pipelineJson.trim();
+    try {
+      JSON.parse(pipelineStr);
+    } catch {
+      setError("JSON do pipeline inválido.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      for (let i = 0; i < list.length; i++) {
+        const f = list.item(i)!;
+        const { blob, error: err } = await callImageApi(f, {
+          action: "pipeline",
+          pipeline: pipelineStr,
+        });
+        if (err || !blob) {
+          setError(`${f.name}: ${err ?? "falhou"}`);
+          return;
+        }
+        const ext = blob.type.includes("svg") ? "svg" : "png";
+        const base = f.name.replace(/\.[^.]+$/, "") || `arte-${i}`;
+        downloadBlob(blob, `pipeline-${base}.${ext}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -195,13 +324,16 @@ export default function EstampasPage() {
     { id: "fundo", label: "Remover fundo" },
     { id: "ajustar", label: "Redimensionar" },
     { id: "cores", label: "Cores" },
+    { id: "halftone", label: "Halftone" },
+    { id: "vetor", label: "Vetor (SVG)" },
+    { id: "pipeline", label: "Pipeline / lote" },
     { id: "exportar", label: "Exportar" },
   ];
 
   return (
     <ToolLayout
       title="Estúdio de Estampas"
-      description="Arte para camisetas: remover fundo (Rembg + Sharp), DPI, knockout, presets DTF e camisa preta"
+      description="Arte para camisetas: Rembg, DPI, knockout, halftone (silk), vetor SVG (potrace), pipeline em lote e presets DTF/camisa preta"
     >
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100">
         <strong>Privacidade:</strong> imagens são enviadas ao servidor para processamento e não são
@@ -280,7 +412,6 @@ export default function EstampasPage() {
             size="sm"
             variant={tab === id ? "default" : "outline"}
             onClick={() => setTab(id)}
-            disabled={!file}
           >
             {label}
           </Button>
@@ -420,6 +551,53 @@ export default function EstampasPage() {
                   }
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4 space-y-3 sm:col-span-2">
+              <div className="flex items-center gap-2 font-medium">
+                <Layers className="h-4 w-4" />
+                Silk 1 cor (halftone + cm)
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Floyd–Steinberg ou Bayer 4×4 + redimensionamento opcional (300 DPI típico).
+              </p>
+              <div className="flex flex-wrap gap-2 items-end">
+                <div className="w-28">
+                  <label className="text-xs text-muted-foreground">Modo</label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+                    value={halftoneMode}
+                    onChange={(e) => setHalftoneMode(e.target.value === "ordered4" ? "ordered4" : "floyd")}
+                  >
+                    <option value="floyd">Floyd–Steinberg</option>
+                    <option value="ordered4">Bayer 4×4</option>
+                  </select>
+                </div>
+                <div className="w-24">
+                  <label className="text-xs text-muted-foreground">Largura (cm)</label>
+                  <Input value={widthCm} onChange={(e) => setWidthCm(e.target.value)} />
+                </div>
+                <div className="w-20">
+                  <label className="text-xs text-muted-foreground">DPI</label>
+                  <Input value={dpi} onChange={(e) => setDpi(e.target.value)} />
+                </div>
+                <Button
+                  disabled={loading || !file}
+                  onClick={() =>
+                    run(
+                      {
+                        action: "preset_silk",
+                        widthCm,
+                        dpi,
+                        mode: halftoneMode,
+                      },
+                      `silk-${file?.name ?? "arte"}.png`
+                    )
+                  }
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar Silk"}
                 </Button>
               </div>
             </div>
@@ -573,6 +751,145 @@ export default function EstampasPage() {
               }
             >
               Remover pretos
+            </Button>
+          </div>
+        </Panel>
+      )}
+
+      {tab === "halftone" && (
+        <Panel title="Halftone (meio-tom)">
+          <p className="text-sm text-muted-foreground mb-4">
+            Converte luminância para pontos pretos/brancos (útil para silk 1 cor). Transparência é
+            tratada como papel branco por baixo.
+          </p>
+          <div className="flex flex-wrap gap-3 items-end mb-4">
+            <div className="w-40">
+              <label className="text-xs text-muted-foreground">Modo</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+                value={halftoneMode}
+                onChange={(e) => setHalftoneMode(e.target.value === "ordered4" ? "ordered4" : "floyd")}
+              >
+                <option value="floyd">Floyd–Steinberg</option>
+                <option value="ordered4">Bayer 4×4</option>
+              </select>
+            </div>
+            <div className="w-24">
+              <label className="text-xs text-muted-foreground">DPI (meta)</label>
+              <Input value={dpi} onChange={(e) => setDpi(e.target.value)} />
+            </div>
+            <Button
+              disabled={loading || !file}
+              onClick={() =>
+                run(
+                  { action: "halftone", mode: halftoneMode, dpi },
+                  `halftone-${file?.name ?? "arte"}.png`
+                )
+              }
+            >
+              Aplicar halftone
+            </Button>
+          </div>
+        </Panel>
+      )}
+
+      {tab === "vetor" && (
+        <Panel title="Vetorizar (SVG)">
+          <p className="text-sm text-muted-foreground mb-4">
+            Monocromático via <strong>potrace</strong> no servidor (imagem Docker inclui o binário).
+            Ajuste o limiar se o traço sumir ou ficar cheio de ruído.
+          </p>
+          <div className="flex flex-wrap gap-3 items-end mb-4">
+            <div className="w-28">
+              <label className="text-xs text-muted-foreground">Limiar (0–255)</label>
+              <Input value={vectorThreshold} onChange={(e) => setVectorThreshold(e.target.value)} />
+            </div>
+            <div className="w-28">
+              <label className="text-xs text-muted-foreground">Turdsize</label>
+              <Input value={vectorTurd} onChange={(e) => setVectorTurd(e.target.value)} />
+            </div>
+            <Button
+              disabled={loading || !file}
+              onClick={() =>
+                run(
+                  {
+                    action: "vectorize",
+                    threshold: vectorThreshold,
+                    turdsize: vectorTurd,
+                  },
+                  `vetor-${(file?.name ?? "arte").replace(/\.[^.]+$/, "")}.svg`
+                )
+              }
+            >
+              Baixar SVG
+            </Button>
+          </div>
+        </Panel>
+      )}
+
+      {tab === "pipeline" && (
+        <Panel title="Pipeline e lote">
+          <p className="text-sm text-muted-foreground mb-3">
+            Array JSON de passos com <code className="text-xs">action</code> e campos iguais ao
+            formulário da API. Passos com Rembg exigem <code className="text-xs">REMBG_BASE_URL</code>.
+            Último passo com <code className="text-xs">vectorize</code> devolve SVG.
+          </p>
+          <Textarea
+            className="font-mono text-xs min-h-[180px] mb-4"
+            value={pipelineJson}
+            onChange={(e) => setPipelineJson(e.target.value)}
+            spellCheck={false}
+          />
+          <div className="flex flex-wrap gap-2 items-end mb-6">
+            <Button disabled={loading || !file} onClick={() => void runPipeline()}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Executar na imagem atual"}
+            </Button>
+            <div className="flex gap-2 items-end">
+              <div className="w-40">
+                <label className="text-xs text-muted-foreground">Nome da receita</label>
+                <Input value={recipeName} onChange={(e) => setRecipeName(e.target.value)} placeholder="Ex.: DTF+halftone" />
+              </div>
+              <Button type="button" variant="outline" onClick={() => saveCurrentRecipe()}>
+                Guardar no navegador
+              </Button>
+            </div>
+            <div className="w-full sm:w-56">
+              <label className="text-xs text-muted-foreground">Carregar receita</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+                value={recipeSelect}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setRecipeSelect(v);
+                  const i = Number(v);
+                  if (Number.isFinite(i) && savedRecipes[i]) {
+                    setPipelineJson(savedRecipes[i]!.json);
+                  }
+                }}
+              >
+                <option value="">— escolher —</option>
+                {savedRecipes.map((r, i) => (
+                  <option key={`${r.name}-${i}`} value={String(i)}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="rounded-lg border p-4 space-y-3">
+            <p className="text-sm font-medium">Lote (vários ficheiros)</p>
+            <p className="text-xs text-muted-foreground">
+              Usa o mesmo JSON em cada ficheiro. Os downloads disparam em sequência.
+            </p>
+            <input
+              ref={batchInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              multiple
+              className="text-sm"
+            />
+            <Button type="button" variant="secondary" disabled={loading} onClick={() => void runPipelineBatch()}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Processar lote"}
             </Button>
           </div>
         </Panel>

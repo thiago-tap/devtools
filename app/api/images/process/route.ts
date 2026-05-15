@@ -3,24 +3,32 @@ import {
   imageResponse,
   parseImageUpload,
   parseNumberField,
+  parseOptionalNumber,
+  svgResponse,
   withImageApiGuards,
 } from "@/lib/api/image-upload";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/security";
 import type { OutputFormat } from "@/lib/images/constants";
+import type { HalftoneMode } from "@/lib/images/halftone";
+import { parsePipelineJson, runImagePipeline } from "@/lib/images/pipeline";
 import {
   isRembgConfigured,
   isRembgHeavyAction,
+  pipelineJsonUsesRembg,
   removeBackgroundViaRembg,
 } from "@/lib/images/rembg";
 import {
   convertImage,
   getImageMetadata,
+  halftoneRaster,
   knockoutColor,
   knockoutColorEdgeFlood,
   knockoutDarkColors,
   presetBlackShirt,
   presetDtf,
+  presetSilk,
   resizeImage,
+  vectorizeToSvg,
 } from "@/lib/images/process";
 
 export const runtime = "nodejs";
@@ -47,7 +55,11 @@ export async function POST(request: NextRequest) {
   const action = fields.action?.trim() || "metadata";
   const baseName = fileName.replace(/\.[^.]+$/, "") || "arte";
 
-  if (isRembgHeavyAction(action)) {
+  const needsRembg =
+    isRembgHeavyAction(action) ||
+    (action === "pipeline" && pipelineJsonUsesRembg(fields.pipeline));
+
+  if (needsRembg) {
     const ip = getClientIp(request);
     const rembgPerMin = Number(process.env.REMBG_RATE_LIMIT_PER_MIN ?? "12");
     const cap = Number.isFinite(rembgPerMin) && rembgPerMin > 0 ? rembgPerMin : 12;
@@ -153,6 +165,45 @@ export async function POST(request: NextRequest) {
           tolerance: parseNumberField(fields, "tolerance"),
         });
         return imageResponse(out, "png", `${baseName}-camisa-preta-transparente`);
+      }
+
+      case "halftone": {
+        const modeRaw = fields.mode?.trim().toLowerCase();
+        const mode: HalftoneMode = modeRaw === "ordered4" ? "ordered4" : "floyd";
+        const out = await halftoneRaster(buffer, {
+          mode,
+          dpi: parseNumberField(fields, "dpi"),
+        });
+        return imageResponse(out, "png", `${baseName}-halftone`);
+      }
+
+      case "vectorize": {
+        const out = await vectorizeToSvg(buffer, {
+          threshold: parseOptionalNumber(fields, "threshold") ?? 128,
+          turdsize: parseOptionalNumber(fields, "turdsize") ?? 2,
+        });
+        return svgResponse(out, `${baseName}-vetor`);
+      }
+
+      case "preset_silk": {
+        const modeRaw = fields.mode?.trim().toLowerCase();
+        const halftoneMode: HalftoneMode = modeRaw === "ordered4" ? "ordered4" : "floyd";
+        const out = await presetSilk(buffer, {
+          widthCm: parseNumberField(fields, "widthCm"),
+          heightCm: parseNumberField(fields, "heightCm"),
+          dpi: parseNumberField(fields, "dpi"),
+          halftoneMode,
+        });
+        return imageResponse(out, "png", `${baseName}-silk`);
+      }
+
+      case "pipeline": {
+        const steps = parsePipelineJson(fields.pipeline ?? "");
+        const { buffer: out, isSvg } = await runImagePipeline(buffer, { fileName, mime }, steps);
+        if (isSvg) {
+          return svgResponse(out, `${baseName}-pipeline`);
+        }
+        return imageResponse(out, "png", `${baseName}-pipeline`);
       }
 
       default:

@@ -73,3 +73,23 @@ export function isRembgHeavyAction(action: string): boolean {
       return false;
   }
 }
+
+/** Se false, o pipeline não usa Rembg — permite rate limit só quando necessário. */
+export function pipelineJsonUsesRembg(raw: string | undefined): boolean {
+  if (!raw?.trim()) return false;
+  try {
+    const arr = JSON.parse(raw) as unknown;
+    if (!Array.isArray(arr)) return true;
+    return arr.some((s) => {
+      if (!s || typeof s !== "object" || Array.isArray(s)) return false;
+      const a = (s as { action?: string }).action;
+      return (
+        a === "remove_bg" ||
+        a === "preset_dtf_transparent" ||
+        a === "preset_camisa_preta_transparent"
+      );
+    });
+  } catch {
+    return true;
+  }
+}

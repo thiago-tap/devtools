@@ -3,6 +3,7 @@ import {
   getRembgBaseUrl,
   isRembgConfigured,
   isRembgHeavyAction,
+  pipelineJsonUsesRembg,
   removeBackgroundViaRembg,
 } from "./rembg";
 
@@ -29,6 +30,13 @@ describe("rembg", () => {
     expect(isRembgHeavyAction("remove_bg")).toBe(true);
     expect(isRembgHeavyAction("preset_dtf_transparent")).toBe(true);
     expect(isRembgHeavyAction("metadata")).toBe(false);
+  });
+
+  it("pipelineJsonUsesRembg", () => {
+    expect(pipelineJsonUsesRembg(undefined)).toBe(false);
+    expect(pipelineJsonUsesRembg("[]")).toBe(false);
+    expect(pipelineJsonUsesRembg(JSON.stringify([{ action: "resize" }]))).toBe(false);
+    expect(pipelineJsonUsesRembg(JSON.stringify([{ action: "remove_bg" }]))).toBe(true);
   });
 
   it("removeBackgroundViaRembg envia multipart e retorna PNG", async () => {

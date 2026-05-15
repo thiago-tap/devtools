@@ -42,6 +42,7 @@ O Easypanel **não lê** o `docker-compose.yml` do Git automaticamente em todo t
 4. **Build:**
    - Dockerfile na **raiz** (`Dockerfile` padrão, caminho `/` ou deixe em branco conforme o painel).
    - Contexto: `.`
+   - O estágio de produção instala **potrace** (vetorização SVG e passos `vectorize` no pipeline). Após atualizar o repositório, faça **Rebuild** completo do serviço para garantir o binário na imagem.
 5. **Porta publicada do container:** **3000**.
 
 ### C. Variáveis de ambiente no **DevToolbox** (obrigatório)

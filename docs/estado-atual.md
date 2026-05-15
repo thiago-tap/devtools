@@ -21,7 +21,7 @@ Estilo       Tailwind CSS + componentes UI (shadcn-style)
 Hospedagem   Easypanel / Docker (Node 20)
 Runtime API  Next.js Route Handlers (Node)
 IA           lib/ai/client.ts — OpenAI-compatible / OpenRouter / Ollama
-Imagens      Sharp + Rembg opcional (lib/images) — Estúdio de Estampas
+Imagens      Sharp + halftone + potrace (SVG) + Rembg opcional (lib/images) — Estúdio de Estampas
 Build deploy Dockerfile (output: standalone)
 Testes       Vitest (lib/tools, lib/images)
 ```
@@ -82,11 +82,11 @@ Catálogo central: `lib/tools.ts`. Cada ferramenta tem rota em `app/tools/<id>/`
 
 \* **YAML:** import dinâmico do pacote `yaml` + `ssr: false`.
 
-### Estúdio de Estampas (MVP + fundo)
+### Estúdio de Estampas (MVP + fundo + halftone + vetor + pipeline)
 
-- **UI:** `/tools/estampas` — upload, presets, redimensionar, cores, exportar, **Remover fundo**
-- **API:** `POST /api/images/process` — `metadata`, `resize`, `convert`, `knockout`, `knockout_dark`, `preset_dtf`, `preset_camisa_preta`, `remove_bg`, `preset_dtf_transparent`, `preset_camisa_preta_transparent`
-- **Limite:** `MAX_UPLOAD_MB`, rate limit geral + extra por IP para ações Rembg (`REMBG_RATE_LIMIT_PER_MIN`)
+- **UI:** `/tools/estampas` — upload, presets, redimensionar, cores, exportar, **Remover fundo**, **Halftone**, **Vetor (SVG)**, **Pipeline / lote** (receitas em `localStorage`)
+- **API:** `POST /api/images/process` — `metadata`, `resize`, `convert`, `knockout`, `knockout_dark`, `preset_dtf`, `preset_camisa_preta`, `remove_bg`, `preset_dtf_transparent`, `preset_camisa_preta_transparent`, `halftone`, `vectorize`, `preset_silk`, `pipeline` (corpo JSON no campo `pipeline`)
+- **Limite:** `MAX_UPLOAD_MB`, rate limit geral + extra por IP para ações Rembg (`REMBG_RATE_LIMIT_PER_MIN`); `pipeline` só entra no teto Rembg se o JSON incluir passos que chamam Rembg
 
 Ver [estudio-estampas.md](./estudio-estampas.md) e [roadmap.md](./roadmap.md).
 
@@ -136,10 +136,10 @@ lib/
 
 ---
 
-## Próximas fases (não implementadas)
+## Próximas melhorias (opcional)
 
-- Halftone para silk screen
-- Vetorização (vtracer / potrace)
-- Pipeline em lote
+- vtracer como alternativa ao potrace
+- Pré-visualização nativa de SVG após vetorizar
+- Testes manuais em produção (checklist Fase 2 no [roadmap](./roadmap.md))
 
 Ver [roadmap.md](./roadmap.md).

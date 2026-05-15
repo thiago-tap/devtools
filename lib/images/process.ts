@@ -11,6 +11,10 @@ import {
   DEFAULT_KNOCKOUT_TOLERANCE,
   type OutputFormat,
 } from "@/lib/images/constants";
+import { halftoneImage, type HalftoneMode } from "@/lib/images/halftone";
+import { rasterToSvgPotrace } from "@/lib/images/vectorize";
+
+export type { HalftoneMode } from "@/lib/images/halftone";
 
 export type ImageMetadata = {
   width: number;
@@ -193,6 +197,39 @@ export async function presetBlackShirt(
   let buf = await knockoutDarkColors(input, opts.tolerance);
   if (opts.widthCm) {
     buf = await resizeImage(buf, { widthCm: opts.widthCm, dpi: opts.dpi ?? DEFAULT_DPI });
+  }
+  return buf;
+}
+
+/** Meio-tom (Bayer 4×4 ou Floyd–Steinberg) → PNG 1 bit visual. */
+export async function halftoneRaster(
+  input: Buffer,
+  opts: { mode: HalftoneMode; dpi?: number }
+): Promise<Buffer> {
+  return halftoneImage(input, opts);
+}
+
+/** Monocromático → SVG (potrace no servidor). */
+export async function vectorizeToSvg(
+  input: Buffer,
+  opts: { threshold?: number; turdsize?: number }
+): Promise<Buffer> {
+  return rasterToSvgPotrace(input, opts);
+}
+
+/** Preset silk: halftone + resize opcional em cm. */
+export async function presetSilk(
+  input: Buffer,
+  opts: { widthCm?: number; heightCm?: number; dpi?: number; halftoneMode?: HalftoneMode }
+): Promise<Buffer> {
+  const mode = opts.halftoneMode ?? "floyd";
+  let buf = await halftoneImage(input, { mode, dpi: opts.dpi ?? DEFAULT_DPI });
+  if (opts.widthCm || opts.heightCm) {
+    buf = await resizeImage(buf, {
+      widthCm: opts.widthCm,
+      heightCm: opts.heightCm,
+      dpi: opts.dpi ?? DEFAULT_DPI,
+    });
   }
   return buf;
 }

@@ -59,8 +59,8 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 | Status | Tarefa |
 |--------|--------|
-| [ ] | ImageMagick / motor halftone |
-| [ ] | Preset Silk |
+| [x] | Motor halftone (Sharp + Bayer 4×4 / Floyd–Steinberg) |
+| [x] | Preset Silk |
 
 ---
 
@@ -68,8 +68,8 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 | Status | Tarefa |
 |--------|--------|
-| [ ] | vtracer / potrace no container |
-| [ ] | Export SVG |
+| [x] | potrace no container (`Dockerfile`) |
+| [x] | Export SVG (`action: vectorize`) |
 
 ---
 
@@ -77,7 +77,7 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 | Status | Tarefa |
 |--------|--------|
-| [ ] | `POST /api/images/pipeline` |
-| [ ] | Lote, localStorage de receitas |
+| [x] | Pipeline na mesma rota (`action: pipeline` + JSON) |
+| [x] | Lote e receitas em `localStorage` (UI Estampas) |
 
 Ver [estudio-estampas.md](./estudio-estampas.md).
