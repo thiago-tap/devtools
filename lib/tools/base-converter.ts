@@ -39,21 +39,22 @@ function isValidForBase(value: string, base: BaseRadix): boolean {
 }
 
 function fromBigInt(n: bigint, to: BaseRadix): string {
-  if (n === 0n) return "0";
+  const zero = BigInt(0);
+  if (n === zero) return "0";
   if (to === 10) return n.toString(10);
 
   const base = BigInt(to);
-  let x = n < 0n ? -n : n;
+  let x = n < zero ? -n : n;
   let out = "";
 
-  while (x > 0n) {
+  while (x > zero) {
     const rem = Number(x % base);
     out = DIGITS[rem]! + out;
     x /= base;
   }
 
   const prefix = to === 16 ? "0x" : to === 8 ? "0o" : to === 2 ? "0b" : "";
-  return (n < 0n ? "-" : "") + prefix + out;
+  return (n < zero ? "-" : "") + prefix + out;
 }
 
 export function convertToAllBases(value: string, from: BaseRadix): Record<BaseRadix, string> | { error: string } {

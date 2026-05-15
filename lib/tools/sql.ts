@@ -27,7 +27,7 @@ export function formatSQL(input: string): string {
   });
 
   // Indent fields in SELECT
-  result = result.replace(/SELECT\s+(.*?)\s+FROM/is, (_, fields) => {
+  result = result.replace(/SELECT\s+([\s\S]*?)\s+FROM/i, (_, fields) => {
     const fieldList = fields
       .split(",")
       .map((f: string) => `  ${f.trim()}`)

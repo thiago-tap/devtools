@@ -152,3 +152,84 @@ export function applyColorKnockout(
   const fringeTol = fringeToleranceForTarget(target, tolerance);
   applyKnockoutFringePasses(data, width, height, target, fringeTol, fringePasses);
 }
+
+/**
+ * Pode propagar inundação por este pixel? Roxo “cheio” sim; anti-alias na borda do texto
+ * (mais próximo do preto) não — evita comer traços finos. Halos escuros roxo+preto entram
+ * na fase seguinte (franja).
+ */
+export function canFloodThroughPixel(pixel: Rgb, key: Rgb, tolerance: number): boolean {
+  if (colorDistance(pixel, key) > tolerance) return false;
+  const dBlack = colorDistance(pixel, RGB_BLACK);
+  const dKey = colorDistance(pixel, key);
+  if (dBlack < 42) return false;
+  const lum = luminance(pixel);
+  if (lum < 108 && dBlack < dKey + 72) return false;
+  return true;
+}
+
+/**
+ * Remove fundo conectado à **moldura** da imagem (4-vizinhos), sem apagar ilhas do mesmo
+ * tom no interior (ex.: buraco de “O” com o mesmo roxo — ver documentação na UI).
+ * Depois aplica a mesma limpeza de franja que `applyColorKnockout`.
+ */
+export function applyColorKnockoutEdgeFlood(
+  data: Buffer,
+  width: number,
+  height: number,
+  target: Rgb,
+  tolerance: number,
+  opts?: { fringePasses?: number }
+): void {
+  const n = width * height;
+  const visited = new Uint8Array(n);
+  const queue = new Int32Array(n);
+  let head = 0;
+  let tail = 0;
+
+  const pixelAt = (p: number): Rgb => {
+    const i = p * 4;
+    return { r: data[i], g: data[i + 1], b: data[i + 2] };
+  };
+
+  const tryEnqueue = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const p = y * width + x;
+    if (visited[p]) return;
+    const i = p * 4;
+    if (data[i + 3] === 0) {
+      visited[p] = 1;
+      return;
+    }
+    const rgb = pixelAt(p);
+    if (!canFloodThroughPixel(rgb, target, tolerance)) return;
+    visited[p] = 1;
+    queue[tail++] = p;
+  };
+
+  for (let x = 0; x < width; x++) {
+    tryEnqueue(x, 0);
+    tryEnqueue(x, height - 1);
+  }
+  for (let y = 0; y < height; y++) {
+    tryEnqueue(0, y);
+    tryEnqueue(width - 1, y);
+  }
+
+  while (head < tail) {
+    const p = queue[head++]!;
+    const i = p * 4;
+    data[i + 3] = 0;
+    const x = p % width;
+    const y = (p / width) | 0;
+    if (x > 0) tryEnqueue(x - 1, y);
+    if (x + 1 < width) tryEnqueue(x + 1, y);
+    if (y > 0) tryEnqueue(x, y - 1);
+    if (y + 1 < height) tryEnqueue(x, y + 1);
+  }
+
+  const fringePasses = opts?.fringePasses ?? 3;
+  if (fringePasses <= 0) return;
+  const fringeTol = fringeToleranceForTarget(target, tolerance);
+  applyKnockoutFringePasses(data, width, height, target, fringeTol, fringePasses);
+}

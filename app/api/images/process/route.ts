@@ -16,6 +16,7 @@ import {
   convertImage,
   getImageMetadata,
   knockoutColor,
+  knockoutColorEdgeFlood,
   knockoutDarkColors,
   presetBlackShirt,
   presetDtf,
@@ -96,6 +97,13 @@ export async function POST(request: NextRequest) {
         const tolerance = parseNumberField(fields, "tolerance");
         const out = await knockoutColor(buffer, { color, tolerance });
         return imageResponse(out, "png", `${baseName}-knockout`);
+      }
+
+      case "knockout_edge": {
+        const color = fields.color?.trim() || "#000000";
+        const tolerance = parseNumberField(fields, "tolerance");
+        const out = await knockoutColorEdgeFlood(buffer, { color, tolerance });
+        return imageResponse(out, "png", `${baseName}-fundo-borda`);
       }
 
       case "knockout_dark": {

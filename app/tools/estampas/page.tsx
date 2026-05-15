@@ -487,7 +487,11 @@ export default function EstampasPage() {
       {tab === "cores" && (
         <Panel title="Remover cor (knockout)">
           <p className="text-sm text-muted-foreground mb-3">
-            Para fundo sólido (ex.: roxo), prefira amostrar a cor com o pincel ou o clique na imagem — melhor que Rembg para texto. Bordas anti-alias são limpas com cuidado para não apagar tipografia pequena; se notar halo roxo, suba a tolerância; se as letras pequenas sumirem, baixe um pouco.
+            Para cartão com fundo que encosta à borda da imagem, use primeiro{" "}
+            <strong>Fundo pela borda</strong>: a inundação sai das quatro molduras e não atravessa
+            anti-alias do texto preto (mais estável que apagar a cor em todo o mapa). Se o fundo
+            não tocar à borda ou houver o mesmo roxo dentro de um buraco de letra fechado (O, P, R…), use{" "}
+            <strong>Cor em toda a imagem</strong>. Ajuste a tolerância se notar halo ou falhas.
           </p>
           <div className="flex flex-wrap gap-2 items-center mb-4">
             <Button
@@ -524,7 +528,7 @@ export default function EstampasPage() {
               Clique no preview acima na cor que deseja remover. O campo HEX será preenchido automaticamente.
             </p>
           )}
-          <div className="grid sm:grid-cols-4 gap-3 items-end">
+          <div className="grid sm:grid-cols-2 gap-3 items-end mb-4">
             <div>
               <label className="text-xs text-muted-foreground">Cor HEX</label>
               <Input value={knockColor} onChange={(e) => setKnockColor(e.target.value)} />
@@ -533,6 +537,19 @@ export default function EstampasPage() {
               <label className="text-xs text-muted-foreground">Tolerância</label>
               <Input value={tolerance} onChange={(e) => setTolerance(e.target.value)} />
             </div>
+          </div>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+            <Button
+              disabled={loading || !file}
+              onClick={() =>
+                run(
+                  { action: "knockout_edge", color: knockColor, tolerance },
+                  `fundo-borda-${file?.name ?? "arte"}.png`
+                )
+              }
+            >
+              Fundo pela borda (recomendado)
+            </Button>
             <Button
               variant="outline"
               disabled={loading || !file}
@@ -543,9 +560,10 @@ export default function EstampasPage() {
                 )
               }
             >
-              Cor específica
+              Cor em toda a imagem
             </Button>
             <Button
+              variant="outline"
               disabled={loading || !file}
               onClick={() =>
                 run(

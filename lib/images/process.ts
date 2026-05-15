@@ -1,6 +1,7 @@
 import sharp from "sharp";
 import {
   applyColorKnockout,
+  applyColorKnockoutEdgeFlood,
   colorDistance,
   parseHexColor,
   type Rgb,
@@ -115,6 +116,30 @@ export async function knockoutColor(input: Buffer, opts: KnockoutOptions): Promi
     .toBuffer({ resolveWithObject: true });
 
   applyColorKnockout(data, info.width, info.height, target, tolerance);
+
+  return sharp(data, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+}
+
+/** Fundo da cor-chave ligado à moldura (recomendado para cartões roxo + texto preto). */
+export async function knockoutColorEdgeFlood(
+  input: Buffer,
+  opts: KnockoutOptions
+): Promise<Buffer> {
+  const target = parseHexColor(opts.color);
+  if (!target) throw new Error("Cor inválida. Use HEX, ex: #000000");
+
+  const tolerance = opts.tolerance ?? DEFAULT_KNOCKOUT_TOLERANCE;
+  const { data, info } = await sharp(input)
+    .rotate()
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  applyColorKnockoutEdgeFlood(data, info.width, info.height, target, tolerance);
 
   return sharp(data, {
     raw: { width: info.width, height: info.height, channels: 4 },

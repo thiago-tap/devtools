@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyColorKnockout, colorDistance, parseHexColor } from "./color";
+import {
+  applyColorKnockout,
+  applyColorKnockoutEdgeFlood,
+  canFloodThroughPixel,
+  colorDistance,
+  parseHexColor,
+  type Rgb,
+} from "./color";
 
 describe("color", () => {
   it("parseHexColor", () => {
@@ -59,5 +66,42 @@ describe("color", () => {
     expect(data[3]).toBe(0);
     expect(data[7]).toBe(255);
     expect(data[11]).toBe(255);
+  });
+
+  it("canFloodThroughPixel blocks anti-alias closer to black than key", () => {
+    const key = { r: 147, g: 73, b: 255 };
+    expect(canFloodThroughPixel(key, key, 40)).toBe(true);
+    expect(canFloodThroughPixel({ r: 0, g: 0, b: 0 }, key, 40)).toBe(false);
+    const aa: Rgb = { r: 100, g: 50, b: 150 };
+    expect(canFloodThroughPixel(aa, key, 120)).toBe(false);
+  });
+
+  it("edge flood clears border key but not enclosed black", () => {
+    const key = { r: 147, g: 73, b: 255 };
+    const w = 6;
+    const h = 6;
+    const data = Buffer.alloc(w * h * 4, 0);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        const edge = x === 0 || x === w - 1 || y === 0 || y === h - 1;
+        if (edge) {
+          data[i] = key.r;
+          data[i + 1] = key.g;
+          data[i + 2] = key.b;
+          data[i + 3] = 255;
+        } else {
+          data[i] = 0;
+          data[i + 1] = 0;
+          data[i + 2] = 0;
+          data[i + 3] = 255;
+        }
+      }
+    }
+    applyColorKnockoutEdgeFlood(data, w, h, key, 40, { fringePasses: 0 });
+    const center = (2 * w + 2) * 4;
+    expect(data[center + 3]).toBe(255);
+    const corner = 0;
+    expect(data[corner + 3]).toBe(0);
   });
 });
