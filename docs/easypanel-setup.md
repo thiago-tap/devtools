@@ -2,6 +2,8 @@
 
 Guia para o projeto **sistemasdev** (ou qualquer projeto Easypanel vazio).
 
+> **Deploy:** com **Auto Deploy** ligado no GitHub, qualquer push na branch `main` dispara novo build no Easypanel.
+
 ## Pré-requisitos
 
 - Repositório: `https://github.com/thiago-tap/devtools` (branch `main`)
