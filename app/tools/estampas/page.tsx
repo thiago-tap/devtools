@@ -4,8 +4,23 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Download, ImageIcon, Loader2, Shirt, Upload, Wand2 } from "lucide-react";
+import { AlertCircle, Download, ImageIcon, Loader2, Pipette, Shirt, Upload, Wand2 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
+
+declare global {
+  interface Window {
+    EyeDropper?: new () => { open: () => Promise<{ sRGBHex: string }> };
+  }
+}
+
+function clampChannel(n: number): number {
+  return Math.max(0, Math.min(255, n));
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const h = (c: number) => clampChannel(c).toString(16).padStart(2, "0");
+  return `#${h(r)}${h(g)}${h(b)}`.toUpperCase();
+}
 
 type ImageMeta = {
   width: number;
@@ -68,6 +83,7 @@ export default function EstampasPage() {
   const [quality, setQuality] = useState("90");
 
   const [rembgAvailable, setRembgAvailable] = useState<boolean | null>(null);
+  const [pickColorFromPreview, setPickColorFromPreview] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +100,10 @@ export default function EstampasPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (tab !== "cores") setPickColorFromPreview(false);
+  }, [tab]);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loadMeta = useCallback(async (f: File) => {
@@ -99,10 +119,12 @@ export default function EstampasPage() {
       setFile(null);
       setPreview(null);
       setMeta(null);
+      setPickColorFromPreview(false);
       return;
     }
     setFile(f);
     setPreview(URL.createObjectURL(f));
+    setPickColorFromPreview(false);
     await loadMeta(f);
   };
 
@@ -127,6 +149,47 @@ export default function EstampasPage() {
     }
   };
 
+  const sampleColorFromPreviewClick = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.naturalWidth === 0 || img.naturalHeight === 0) return;
+
+    const rect = img.getBoundingClientRect();
+    const scaleX = img.naturalWidth / rect.width;
+    const scaleY = img.naturalHeight / rect.height;
+    let x = Math.floor((e.clientX - rect.left) * scaleX);
+    let y = Math.floor((e.clientY - rect.top) * scaleY);
+    x = Math.max(0, Math.min(img.naturalWidth - 1, x));
+    y = Math.max(0, Math.min(img.naturalHeight - 1, y));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0);
+    const px = ctx.getImageData(x, y, 1, 1).data;
+    setKnockColor(rgbToHex(px[0], px[1], px[2]));
+    setPickColorFromPreview(false);
+    setError("");
+  }, []);
+
+  const openEyeDropper = useCallback(async () => {
+    if (typeof window.EyeDropper !== "function") {
+      setError(
+        "Este navegador não tem amostra nativa. Use Chrome/Edge ou o botão «Clicar na imagem»."
+      );
+      return;
+    }
+    try {
+      const dropper = new window.EyeDropper();
+      const result = await dropper.open();
+      setKnockColor(result.sRGBHex.toUpperCase());
+      setError("");
+    } catch {
+      /* utilizador cancelou */
+    }
+  }, []);
+
   const tabs: { id: Tab; label: string }[] = [
     { id: "presets", label: "Presets" },
     { id: "fundo", label: "Remover fundo" },
@@ -149,7 +212,9 @@ export default function EstampasPage() {
       <Panel title="Imagem">
         <div
           className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => inputRef.current?.click()}
+          onClick={() => {
+            if (!pickColorFromPreview) inputRef.current?.click();
+          }}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -170,7 +235,18 @@ export default function EstampasPage() {
               <img
                 src={preview}
                 alt="Preview"
-                className="max-h-64 mx-auto rounded-md object-contain bg-muted"
+                className={
+                  "max-h-64 mx-auto rounded-md object-contain bg-muted " +
+                  (pickColorFromPreview
+                    ? "cursor-crosshair ring-2 ring-primary ring-offset-2 ring-offset-background"
+                    : "")
+                }
+                onClick={(e) => {
+                  if (pickColorFromPreview) {
+                    e.stopPropagation();
+                    sampleColorFromPreviewClick(e);
+                  }
+                }}
               />
               {file && (
                 <p className="text-xs text-muted-foreground">
@@ -410,6 +486,44 @@ export default function EstampasPage() {
 
       {tab === "cores" && (
         <Panel title="Remover cor (knockout)">
+          <p className="text-sm text-muted-foreground mb-3">
+            Para fundo sólido (ex.: roxo), prefira amostrar a cor com o pincel ou o clique na imagem — melhor que Rembg para texto.
+          </p>
+          <div className="flex flex-wrap gap-2 items-center mb-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!file}
+              onClick={() => void openEyeDropper()}
+              className="gap-1"
+            >
+              <Pipette className="h-4 w-4" />
+              Amostra na tela
+            </Button>
+            <Button
+              type="button"
+              variant={pickColorFromPreview ? "default" : "outline"}
+              size="sm"
+              disabled={!preview}
+              onClick={() => {
+                setPickColorFromPreview((v) => !v);
+                setError("");
+              }}
+            >
+              {pickColorFromPreview ? "Cancelar clique na imagem" : "Clicar na imagem"}
+            </Button>
+            <span
+              className="inline-block h-8 w-8 rounded border border-border shrink-0"
+              style={{ backgroundColor: knockColor }}
+              title={knockColor}
+            />
+          </div>
+          {pickColorFromPreview && (
+            <p className="text-xs text-primary mb-4">
+              Clique no preview acima na cor que deseja remover. O campo HEX será preenchido automaticamente.
+            </p>
+          )}
           <div className="grid sm:grid-cols-4 gap-3 items-end">
             <div>
               <label className="text-xs text-muted-foreground">Cor HEX</label>
