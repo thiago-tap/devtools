@@ -8,6 +8,7 @@
 | [limitacoes-cloudflare.md](./limitacoes-cloudflare.md) | Por que o edge limita imagens e libs nativas |
 | [estudio-estampas.md](./estudio-estampas.md) | Visão do módulo de arte para camisetas (fundo, cores, halftone, vetor) |
 | [migracao-easypanel.md](./migracao-easypanel.md) | Plano de migração Cloudflare → Easypanel |
+| [easypanel-setup.md](./easypanel-setup.md) | **Passo a passo** deploy no Easypanel (GitHub, env, DNS) |
 | [roadmap.md](./roadmap.md) | Fases de trabalho (agora → pós-migração) |
 
 ## Contexto rápido
