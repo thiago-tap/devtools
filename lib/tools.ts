@@ -72,11 +72,11 @@ export const TOOLS: Tool[] = [
     id: "estampas",
     name: "Estúdio de Estampas",
     description:
-      "Prepare arte para camisetas: DPI, remover pretos, presets DTF e camisa preta, export PNG/WebP",
+      "Prepare arte para camisetas: remover fundo (Rembg), DPI, knockout, presets DTF e camisa preta, export PNG/WebP",
     category: "Images",
     href: "/tools/estampas",
     icon: "Shirt",
-    tags: ["estampa", "camiseta", "dtf", "sublimação", "knockout", "imagem", "sharp"],
+    tags: ["estampa", "camiseta", "dtf", "sublimação", "knockout", "imagem", "rembg", "sharp"],
     isNew: true,
   },
   {

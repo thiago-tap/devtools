@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Download, ImageIcon, Loader2, Shirt, Upload } from "lucide-react";
+import { AlertCircle, Download, ImageIcon, Loader2, Shirt, Upload, Wand2 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
 
 type ImageMeta = {
@@ -16,7 +16,7 @@ type ImageMeta = {
   heightCm: number | null;
 };
 
-type Tab = "ajustar" | "cores" | "exportar" | "presets";
+type Tab = "ajustar" | "cores" | "exportar" | "presets" | "fundo";
 
 async function callImageApi(
   file: File,
@@ -67,6 +67,23 @@ export default function EstampasPage() {
   const [exportFormat, setExportFormat] = useState<"png" | "jpeg" | "webp">("png");
   const [quality, setQuality] = useState("90");
 
+  const [rembgAvailable, setRembgAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/images/process")
+      .then((r) => r.json() as Promise<{ rembg?: boolean }>)
+      .then((j) => {
+        if (!cancelled) setRembgAvailable(!!j.rembg);
+      })
+      .catch(() => {
+        if (!cancelled) setRembgAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loadMeta = useCallback(async (f: File) => {
@@ -112,6 +129,7 @@ export default function EstampasPage() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "presets", label: "Presets" },
+    { id: "fundo", label: "Remover fundo" },
     { id: "ajustar", label: "Redimensionar" },
     { id: "cores", label: "Cores" },
     { id: "exportar", label: "Exportar" },
@@ -120,11 +138,12 @@ export default function EstampasPage() {
   return (
     <ToolLayout
       title="Estúdio de Estampas"
-      description="Prepare arte para camisetas: resize com DPI, remover pretos (camisa preta), export PNG/JPEG/WebP"
+      description="Arte para camisetas: remover fundo (Rembg + Sharp), DPI, knockout, presets DTF e camisa preta"
     >
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100">
         <strong>Privacidade:</strong> imagens são enviadas ao servidor para processamento e não são
-        armazenadas permanentemente. Máx. 25 MB por arquivo.
+        armazenadas permanentemente. Remoção de fundo pode encaminhar o arquivo a um serviço Rembg na
+        mesma infraestrutura. Máx. 25 MB por arquivo.
       </div>
 
       <Panel title="Imagem">
@@ -261,7 +280,105 @@ export default function EstampasPage() {
                 </Button>
               </div>
             </div>
+
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center gap-2 font-medium">
+                <Wand2 className="h-4 w-4" />
+                DTF sem fundo
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Rembg (IA) + PNG 300 DPI em cm. Requer serviço Rembg configurado.
+              </p>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground">Largura (cm)</label>
+                  <Input value={widthCm} onChange={(e) => setWidthCm(e.target.value)} />
+                </div>
+                <Button
+                  disabled={loading || !file || rembgAvailable === false}
+                  onClick={() =>
+                    run(
+                      {
+                        action: "preset_dtf_transparent",
+                        widthCm,
+                        dpi,
+                      },
+                      `dtf-transparente-${file?.name ?? "arte"}.png`
+                    )
+                  }
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center gap-2 font-medium">
+                <Wand2 className="h-4 w-4" />
+                Camisa preta + sem fundo
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Rembg + remove pretos + resize. Melhor quando a arte ainda tem fundo sólido.
+              </p>
+              <div className="flex gap-2 items-end flex-wrap">
+                <div className="w-24">
+                  <label className="text-xs text-muted-foreground">Largura (cm)</label>
+                  <Input value={widthCm} onChange={(e) => setWidthCm(e.target.value)} />
+                </div>
+                <div className="w-20">
+                  <label className="text-xs text-muted-foreground">Tolerância</label>
+                  <Input value={tolerance} onChange={(e) => setTolerance(e.target.value)} />
+                </div>
+                <Button
+                  disabled={loading || !file || rembgAvailable === false}
+                  onClick={() =>
+                    run(
+                      {
+                        action: "preset_camisa_preta_transparent",
+                        widthCm,
+                        dpi,
+                        tolerance,
+                      },
+                      `camisa-preta-transparente-${file?.name ?? "arte"}.png`
+                    )
+                  }
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                </Button>
+              </div>
+            </div>
           </div>
+        </Panel>
+      )}
+
+      {tab === "fundo" && (
+        <Panel title="Remover fundo (Rembg)">
+          {rembgAvailable === false && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-950 dark:text-amber-100 mb-4">
+              O <strong>Rembg</strong> não está configurado neste servidor. No Easypanel, crie um
+              serviço com a imagem <code className="text-xs">danielgatis/rembg</code> (comando{" "}
+              <code className="text-xs">s --host 0.0.0.0 --port 7000</code>) na mesma rede e defina{" "}
+              <code className="text-xs">REMBG_BASE_URL</code> no app DevToolbox (ex.:{" "}
+              <code className="text-xs">http://rembg:7000</code>). Veja{" "}
+              <code className="text-xs">docs/easypanel-setup.md</code> — não precisa existir template
+              “Rembg” na lista.
+            </div>
+          )}
+          {rembgAvailable === null && (
+            <p className="text-sm text-muted-foreground mb-4">Verificando disponibilidade…</p>
+          )}
+          <p className="text-sm text-muted-foreground mb-4">
+            Usa o modelo de segmentação do Rembg (serviço dedicado). Pode levar de alguns segundos a
+            mais de um minuto conforme tamanho da imagem e CPU do servidor.
+          </p>
+          <Button
+            disabled={loading || !file || rembgAvailable === false}
+            onClick={() =>
+              run({ action: "remove_bg" }, `sem-fundo-${file?.name?.replace(/\.[^.]+$/, "") ?? "arte"}.png`)
+            }
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remover fundo e baixar PNG"}
+          </Button>
         </Panel>
       )}
 
@@ -389,8 +506,8 @@ export default function EstampasPage() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Próximas fases: remover fundo (IA), halftone, vetorização — ver{" "}
-        <code className="text-xs">docs/roadmap.md</code>
+        Ver <code className="text-xs">docs/easypanel-setup.md</code> (Rembg) e{" "}
+        <code className="text-xs">docs/roadmap.md</code> para halftone e vetorização.
       </p>
     </ToolLayout>
   );

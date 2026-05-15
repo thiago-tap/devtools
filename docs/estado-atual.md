@@ -21,7 +21,7 @@ Estilo       Tailwind CSS + componentes UI (shadcn-style)
 Hospedagem   Easypanel / Docker (Node 20)
 Runtime API  Next.js Route Handlers (Node)
 IA           lib/ai/client.ts — OpenAI-compatible / OpenRouter / Ollama
-Imagens      Sharp (lib/images) — Estúdio de Estampas
+Imagens      Sharp + Rembg opcional (lib/images) — Estúdio de Estampas
 Build deploy Dockerfile (output: standalone)
 Testes       Vitest (lib/tools, lib/images)
 ```
@@ -34,14 +34,15 @@ Testes       Vitest (lib/tools, lib/images)
 | `npm run build` | Build Next.js (standalone) |
 | `npm run start` | Servidor de produção |
 | `npm test` | Vitest |
-| `docker compose up --build` | Docker local |
+| `docker compose up --build` | Stack local: **app** + **rembg** |
+| `docker compose --profile monitoring up --build` | Acrescenta **uptime-kuma** (porta 3001) |
 
 ### Arquivos de infraestrutura
 
 | Arquivo | Função |
 |---------|--------|
 | `Dockerfile` | Imagem de produção (standalone) |
-| `docker-compose.yml` | Stack local |
+| `docker-compose.yml` | Stack local: app + rembg; perfil `monitoring` → Uptime Kuma |
 | `.env.example` | Variáveis (IA, URL pública, `MAX_UPLOAD_MB`) |
 | `next.config.js` | `output: standalone`, images unoptimized |
 | `docs/legacy/cloudflare-wrangler.toml` | Referência do deploy Cloudflare anterior |
@@ -77,16 +78,15 @@ Catálogo central: `lib/tools.ts`. Cada ferramenta tem rota em `app/tools/<id>/`
 | uuid | Gerador UUID | `/tools/uuid` | Sim | — |
 | dns | DNS Check | `/tools/dns` | Não | API |
 | headers | HTTP Headers | `/tools/headers` | Não | API |
-| **estampas** | **Estúdio de Estampas** | `/tools/estampas` | Não | **Sharp** |
+| **estampas** | **Estúdio de Estampas** | `/tools/estampas` | Não | **Sharp**, **Rembg** (env) |
 
 \* **YAML:** import dinâmico do pacote `yaml` + `ssr: false`.
 
-### Estúdio de Estampas (MVP)
+### Estúdio de Estampas (MVP + fundo)
 
-- **UI:** `/tools/estampas` — upload, abas Presets / Redimensionar / Cores / Exportar
-- **API:** `POST /api/images/process` — ações `metadata`, `resize`, `convert`, `knockout`, `knockout_dark`, `preset_dtf`, `preset_camisa_preta`
-- **Presets:** DTF (300 DPI, PNG) e Camisa preta (remove pretos + knockout)
-- **Limite:** `MAX_UPLOAD_MB` (padrão 25 MB), rate limit por IP
+- **UI:** `/tools/estampas` — upload, presets, redimensionar, cores, exportar, **Remover fundo**
+- **API:** `POST /api/images/process` — `metadata`, `resize`, `convert`, `knockout`, `knockout_dark`, `preset_dtf`, `preset_camisa_preta`, `remove_bg`, `preset_dtf_transparent`, `preset_camisa_preta_transparent`
+- **Limite:** `MAX_UPLOAD_MB`, rate limit geral + extra por IP para ações Rembg (`REMBG_RATE_LIMIT_PER_MIN`)
 
 Ver [estudio-estampas.md](./estudio-estampas.md) e [roadmap.md](./roadmap.md).
 
@@ -101,14 +101,15 @@ Ver [estudio-estampas.md](./estudio-estampas.md) e [roadmap.md](./roadmap.md).
 | `/api/ai/review` | POST | Revisão de código |
 | `/api/dns` | GET | Consulta DNS (DoH) |
 | `/api/headers` | GET | Inspeciona headers HTTP |
-| `/api/images/process` | POST | Processamento de imagens (Sharp) |
+| `/api/images/process` | GET | `{ rembg }` — Rembg configurado? |
+| `/api/images/process` | POST | Imagens: Sharp + Rembg (ações pesadas) |
 
 ### Segurança (`lib/api/security.ts`, `lib/api/image-upload.ts`)
 
 - Rate limit por IP (JSON e multipart)
 - Limite de tamanho do body / upload
 - DNS: bloqueio de IPs privados / SSRF
-- Imagens: MIME permitidos (PNG, JPEG, WebP, GIF)
+- Imagens: MIME permitidos (PNG, JPEG, WebP, GIF); operações Rembg com teto próprio por minuto
 
 ---
 
@@ -128,7 +129,7 @@ components/
 lib/
   tools.ts              # Catálogo
   tools/                # Lógica client-side
-  images/               # Sharp: process, color, constants
+  images/               # Sharp: process, color, rembg client, constants
   api/                  # security, image-upload
   ai/client.ts          # OpenAI-compatible
 ```
@@ -137,7 +138,6 @@ lib/
 
 ## Próximas fases (não implementadas)
 
-- Remover fundo (rembg / ONNX)
 - Halftone para silk screen
 - Vetorização (vtracer / potrace)
 - Pipeline em lote

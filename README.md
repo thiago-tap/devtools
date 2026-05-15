@@ -99,13 +99,26 @@ npm test
 
 4. Aponte o domínio `devtools.catiteo.com` para o serviço Easypanel.
 
-### Docker local
+**Remover fundo (Rembg):** não entra no `Dockerfile` principal (seria Node + Python + modelos na mesma imagem). No repositório há `Dockerfile.rembg` e o `docker-compose.yml` sobe **app + rembg** juntos no ambiente local. No Easypanel, crie um **segundo** serviço com **Dockerfile** = `Dockerfile.rembg` (mesmo repo) e defina `REMBG_BASE_URL=http://<nome-do-servico-rembg>:7000` no app — detalhes em [docs/easypanel-setup.md](./docs/easypanel-setup.md).
+
+### Docker local (`docker-compose.yml`)
+
+| Serviço | Função | Porta (host) |
+| --- | --- | --- |
+| **app** | DevToolbox (Next.js) | **3000** |
+| **rembg** | Remoção de fundo (rede interna `rembg:7000`) | — |
+| **uptime-kuma** | Monitoramento opcional (perfil `monitoring`) | **3001** |
 
 ```bash
 cp .env.example .env
 # edite .env com suas chaves
 docker compose up --build
+
+# opcional: Uptime Kuma para monitorar URLs (operador)
+docker compose --profile monitoring up --build
 ```
+
+No Compose, `REMBG_BASE_URL` padrão já é `http://rembg:7000`. Volume `rembg_models` persiste os modelos ONNX entre restarts.
 
 Deploy Cloudflare anterior: ver `docs/legacy/cloudflare-wrangler.toml`.
 

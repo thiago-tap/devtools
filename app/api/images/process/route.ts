@@ -5,7 +5,13 @@ import {
   parseNumberField,
   withImageApiGuards,
 } from "@/lib/api/image-upload";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/security";
 import type { OutputFormat } from "@/lib/images/constants";
+import {
+  isRembgConfigured,
+  isRembgHeavyAction,
+  removeBackgroundViaRembg,
+} from "@/lib/images/rembg";
 import {
   convertImage,
   getImageMetadata,
@@ -17,6 +23,10 @@ import {
 } from "@/lib/images/process";
 
 export const runtime = "nodejs";
+
+export async function GET() {
+  return NextResponse.json({ rembg: isRembgConfigured() });
+}
 
 function parseFormat(fields: Record<string, string>): OutputFormat {
   const f = fields.format?.toLowerCase();
@@ -32,9 +42,26 @@ export async function POST(request: NextRequest) {
   const upload = await parseImageUpload(request);
   if (!upload.ok) return upload.response;
 
-  const { buffer, fields, fileName } = upload;
+  const { buffer, fields, fileName, mime } = upload;
   const action = fields.action?.trim() || "metadata";
   const baseName = fileName.replace(/\.[^.]+$/, "") || "arte";
+
+  if (isRembgHeavyAction(action)) {
+    const ip = getClientIp(request);
+    const rembgPerMin = Number(process.env.REMBG_RATE_LIMIT_PER_MIN ?? "12");
+    const cap = Number.isFinite(rembgPerMin) && rembgPerMin > 0 ? rembgPerMin : 12;
+    const rl = checkRateLimit(`images:rembg:${ip}`, cap, 60_000);
+    if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
+    if (!isRembgConfigured()) {
+      return NextResponse.json(
+        {
+          error:
+            "Remoção de fundo não está configurada. Defina REMBG_BASE_URL no servidor (serviço Rembg no Easypanel).",
+        },
+        { status: 503 }
+      );
+    }
+  }
 
   try {
     switch (action) {
@@ -93,6 +120,31 @@ export async function POST(request: NextRequest) {
           tolerance: parseNumberField(fields, "tolerance"),
         });
         return imageResponse(out, "png", `${baseName}-camisa-preta`);
+      }
+
+      case "remove_bg": {
+        const out = await removeBackgroundViaRembg(buffer, fileName, mime);
+        return imageResponse(out, "png", `${baseName}-sem-fundo`);
+      }
+
+      case "preset_dtf_transparent": {
+        let out = await removeBackgroundViaRembg(buffer, fileName, mime);
+        out = await presetDtf(out, {
+          widthCm: parseNumberField(fields, "widthCm"),
+          heightCm: parseNumberField(fields, "heightCm"),
+          dpi: parseNumberField(fields, "dpi"),
+        });
+        return imageResponse(out, "png", `${baseName}-dtf-transparente`);
+      }
+
+      case "preset_camisa_preta_transparent": {
+        let out = await removeBackgroundViaRembg(buffer, fileName, mime);
+        out = await presetBlackShirt(out, {
+          widthCm: parseNumberField(fields, "widthCm"),
+          dpi: parseNumberField(fields, "dpi"),
+          tolerance: parseNumberField(fields, "tolerance"),
+        });
+        return imageResponse(out, "png", `${baseName}-camisa-preta-transparente`);
       }
 
       default:

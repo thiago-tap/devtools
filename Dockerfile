@@ -1,4 +1,7 @@
-# DevToolbox — Node.js (Easypanel / Docker)
+# DevToolbox — apenas o app Next.js (Node + Sharp).
+#
+# Remoção de fundo usa um serviço Rembg separado (Python/onnx — imagem grande).
+# No repositório: veja Dockerfile.rembg e docker-compose.yml (app + rembg na mesma stack).
 FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./

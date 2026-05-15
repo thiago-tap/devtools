@@ -49,8 +49,9 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 | Status | Tarefa |
 |--------|--------|
-| [ ] | `rembg` ou modelo ONNX |
-| [ ] | API + preset integrado |
+| [x] | Rembg como serviço dedicado (Easypanel) |
+| [x] | `REMBG_BASE_URL`, `GET /api/images/process` (status), ações `remove_bg`, presets transparentes |
+| [x] | Rate limit dedicado (`REMBG_RATE_LIMIT_PER_MIN`) |
 
 ---
 

@@ -1,3 +1,18 @@
+# Stack DevToolbox — referência local e documentação de arquitetura.
+#
+# Serviços padrão (sempre sobem):
+#   app       — Next.js DevToolbox (http://localhost:3000)
+#   rembg     — remoção de fundo /api/remove (rede interna; host `rembg:7000`)
+#
+# Opcional (perfil `monitoring` — só para você operar o servidor, não é uso público):
+#   uptime-kuma — status de URLs (http://localhost:3001)
+#
+# Uso:
+#   docker compose up --build
+#   docker compose --profile monitoring up --build
+
+name: devtools
+
 services:
   app:
     build: .
@@ -5,4 +20,45 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      REMBG_BASE_URL: ${REMBG_BASE_URL:-http://rembg:7000}
+    depends_on:
+      rembg:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - devtools
+
+  rembg:
+    build:
+      context: .
+      dockerfile: Dockerfile.rembg
+    image: devtools-rembg:local
+    expose:
+      - "7000"
+    restart: unless-stopped
+    networks:
+      - devtools
+    volumes:
+      # Evita baixar modelo ONNX a cada restart
+      - rembg_models:/root/.u2net
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    profiles:
+      - monitoring
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    restart: unless-stopped
+    networks:
+      - devtools
+
+volumes:
+  rembg_models:
+  uptime_kuma_data:
+
+networks:
+  devtools:
+    name: devtools_net

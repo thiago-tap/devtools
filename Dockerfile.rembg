@@ -1,0 +1,6 @@
+# Rembg — servidor HTTP para o Estúdio de Estampas (mesmo repositório que o DevToolbox).
+# Imagem oficial: https://hub.docker.com/r/danielgatis/rembg
+# ENTRYPOINT já é "rembg"; aqui só fixamos o subcomando do servidor.
+FROM danielgatis/rembg:latest
+CMD ["s", "--host", "0.0.0.0", "--port", "7000", "--log_level", "info"]
+EXPOSE 7000

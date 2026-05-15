@@ -40,8 +40,10 @@ export default function PrivacidadePage() {
           <h2 className="text-foreground font-semibold mb-1">Estúdio de Estampas (imagens)</h2>
           <p>
             A ferramenta de estampas envia arquivos de imagem ao servidor para redimensionar,
-            remover cores e exportar. Os arquivos são processados em memória e não são
-            armazenados de forma permanente. Limite de tamanho por upload (padrão 25 MB).
+            remover cores, exportar e, quando configurado, encaminhar a mesma imagem a um
+            serviço <strong>Rembg</strong> na infraestrutura apenas para remoção de fundo (sem
+            armazenamento permanente). Limite de tamanho por upload (padrão 25 MB). Operações de
+            remoção de fundo têm limite de taxa adicional por IP.
           </p>
         </div>
 
