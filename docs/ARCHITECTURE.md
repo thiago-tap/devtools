@@ -63,3 +63,12 @@ Cada ferramenta nova deve entregar:
 - Coleções vivem em `/collections/[id]`.
 - Categorias vivem em `/tools/categoria/[category]`.
 - O sitemap inclui home, privacidade, categorias, coleções e ferramentas.
+
+## PWA e cache
+
+O service worker usa cache conservador:
+
+- pré-cache apenas de `manifest.json` e `icon.svg`;
+- cache runtime somente para assets estáticos same-origin (`/_next/static`, scripts, styles, imagens, fontes e manifest);
+- nunca intercepta `/api/*`;
+- não faz cache de páginas HTML dinâmicas, evitando conteúdo desatualizado em ferramentas e rotas server-side.

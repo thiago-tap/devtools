@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
+const BLOCKED_HOSTNAME_SUFFIXES = [".localhost", ".local", ".internal"];
 
 export function getClientIp(request: NextRequest): string {
   return (
@@ -39,41 +41,58 @@ export function rateLimitResponse(retryAfterSec: number) {
   );
 }
 
+function normalizeHostname(hostname: string): string {
+  return hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+}
+
+function isBlockedIpv4Literal(hostname: string): boolean {
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(hostname);
+  if (!ipv4) return false;
+
+  const [, aPart, bPart, cPart, dPart] = ipv4;
+  const a = Number(aPart);
+  const b = Number(bPart);
+  const c = Number(cPart);
+  const d = Number(dPart);
+
+  if (a === 127 || a === 0 || a >= 224) return true;
+  if (a === 10) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 169 && b === 254) return true;
+  if (d === 255 && c === 255) return true;
+
+  return false;
+}
+
+function isBlockedIpv6Literal(hostname: string): boolean {
+  if (!hostname.includes(":")) return false;
+
+  const firstSegment = Number.parseInt(hostname.split(":")[0] ?? "", 16);
+  const isLinkLocal = Number.isFinite(firstSegment) && (firstSegment & 0xffc0) === 0xfe80;
+  const isUniqueLocal = Number.isFinite(firstSegment) && (firstSegment & 0xfe00) === 0xfc00;
+
+  return (
+    hostname === "::" ||
+    hostname === "::1" ||
+    hostname.startsWith("::ffff:") ||
+    isLinkLocal ||
+    isUniqueLocal
+  );
+}
+
 export function isBlockedHostname(hostname: string): boolean {
-  const h = hostname.toLowerCase().replace(/\.$/, "");
+  const h = normalizeHostname(hostname);
 
   if (
-    h === "localhost" ||
-    h.endsWith(".localhost") ||
-    h.endsWith(".local") ||
-    h.endsWith(".internal") ||
-    h === "metadata.google.internal"
+    BLOCKED_HOSTNAMES.has(h) ||
+    BLOCKED_HOSTNAME_SUFFIXES.some((suffix) => h.endsWith(suffix))
   ) {
     return true;
   }
 
-  // IPv4 literal
-  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
-  if (ipv4) {
-    const a = Number(ipv4[1]);
-    const b = Number(ipv4[2]);
-    const c = Number(ipv4[3]);
-    const d = Number(ipv4[4]);
-    if (a === 127 || a === 0 || a >= 224) return true;
-    if (a === 10) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 169 && b === 254) return true;
-    if (d === 255 && c === 255) return true;
-  }
-
-  if (h.includes(":")) {
-    if (h === "::1" || h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) {
-      return true;
-    }
-  }
-
-  return false;
+  return isBlockedIpv4Literal(h) || isBlockedIpv6Literal(h);
 }
 
 export function isBlockedUrl(urlStr: string): boolean {

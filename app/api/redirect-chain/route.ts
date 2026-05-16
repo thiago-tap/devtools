@@ -65,8 +65,9 @@ export async function POST(request: NextRequest) {
           { status: 504 }
         );
       }
+      console.error("redirect chain failed", e);
       return NextResponse.json(
-        { error: (e as Error).message ?? "Erro de rede", hops },
+        { error: "Erro de rede ao seguir redirecionamentos", hops },
         { status: 502 }
       );
     }

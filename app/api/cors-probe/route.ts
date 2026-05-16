@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   try {
     const res = await fetch(url, {
       method: "HEAD",
-      redirect: "follow",
+      redirect: "manual",
       signal: controller.signal,
       headers: {
         Origin: origin,
@@ -39,10 +39,18 @@ export async function POST(request: NextRequest) {
     const acao = res.headers.get("access-control-allow-origin");
     const acam = res.headers.get("access-control-allow-methods");
     const acac = res.headers.get("access-control-allow-credentials");
+    const location = res.headers.get("location");
+    if (res.status >= 300 && res.status < 400 && location) {
+      const nextUrl = new URL(location, url).href;
+      if (isBlockedUrl(nextUrl)) {
+        return NextResponse.json({ error: "Redirecionamento para URL não permitida" }, { status: 400 });
+      }
+    }
 
     return NextResponse.json({
       finalUrl: res.url,
       status: res.status,
+      redirectLocation: location,
       requestOrigin: origin,
       accessControlAllowOrigin: acao,
       accessControlAllowMethods: acam,
@@ -55,6 +63,6 @@ export async function POST(request: NextRequest) {
     if ((e as Error).name === "AbortError") {
       return NextResponse.json({ error: "Timeout" }, { status: 504 });
     }
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+    return NextResponse.json({ error: "Erro ao consultar CORS da URL" }, { status: 502 });
   }
 }

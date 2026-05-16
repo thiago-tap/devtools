@@ -1,33 +1,49 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CopyButton } from "@/components/tools/copy-button";
 import { Badge } from "@/components/ui/badge";
+import { useQueryParamState } from "@/lib/hooks/use-query-param-state";
+import { useToolHistory } from "@/lib/hooks/use-tool-history";
 import { formatJSON, minifyJSON, jsonToTypeScript, validateJSON } from "@/lib/tools/json";
 import { Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
 
 type Mode = "format" | "minify" | "typescript";
+type JsonToolResult = { result: string; error?: string };
 
-function JSONPageContent() {
-  const searchParams = useSearchParams();
-  const [input, setInput] = useState("");
+function runJsonTool(mode: Mode, input: string, indent: number): JsonToolResult {
+  switch (mode) {
+    case "format":
+      return formatJSON(input, indent);
+    case "minify":
+      return minifyJSON(input);
+    case "typescript":
+      return jsonToTypeScript(input);
+    default: {
+      const exhaustive: never = mode;
+      return exhaustive;
+    }
+  }
+}
+
+function historyLabelForMode(mode: Mode): string {
+  return mode === "typescript" ? "JSON TypeScript" : `JSON ${mode}`;
+}
+
+export default function JSONPage() {
+  const [input, setInput] = useQueryParamState("input", "");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
-  const [mode, setMode] = useState<Mode>("format");
+  const [modeParam, setModeParam] = useQueryParamState("mode", "format");
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [indent, setIndent] = useState(2);
-
-  useEffect(() => {
-    const m = searchParams.get("mode");
-    if (m === "format" || m === "minify" || m === "typescript") {
-      setMode(m);
-    }
-  }, [searchParams]);
+  const history = useToolHistory<{ input: string; output: string; mode: Mode }>("json");
+  const mode: Mode = modeParam === "format" || modeParam === "minify" || modeParam === "typescript" ? modeParam : "format";
+  const setMode = (next: Mode) => setModeParam(next);
 
   const validation = input ? validateJSON(input) : null;
 
@@ -36,16 +52,14 @@ function JSONPageContent() {
     setOutput("");
     if (!input.trim()) return;
 
-    if (mode === "format") {
-      const r = formatJSON(input, indent);
-      r.error ? setError(r.error) : setOutput(r.result);
-    } else if (mode === "minify") {
-      const r = minifyJSON(input);
-      r.error ? setError(r.error) : setOutput(r.result);
-    } else {
-      const r = jsonToTypeScript(input);
-      r.error ? setError(r.error) : setOutput(r.result);
+    const result = runJsonTool(mode, input, indent);
+    if (result.error) {
+      setError(result.error);
+      return;
     }
+
+    setOutput(result.result);
+    history.add(historyLabelForMode(mode), { input, output: result.result, mode });
   };
 
   const explainWithAI = async () => {
@@ -140,20 +154,26 @@ function JSONPageContent() {
           {aiExplanation || "Clique em 'Explicar estrutura' para a AI descrever o JSON em português."}
         </p>
       </Panel>
+      {history.items.length > 0 && (
+        <Panel title="Histórico local" actions={<Button size="sm" variant="outline" onClick={history.clear}>Limpar</Button>}>
+          <div className="space-y-2">
+            {history.items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="block w-full rounded border p-2 text-left hover:bg-muted/40"
+                onClick={() => {
+                  setInput(item.value.input);
+                  setMode(item.value.mode);
+                  setOutput(item.value.output);
+                }}
+              >
+                <code className="text-xs">{item.label}</code>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
     </ToolLayout>
-  );
-}
-
-export default function JSONPage() {
-  return (
-    <Suspense
-      fallback={
-        <ToolLayout title="Formatador JSON" description="A carregar…">
-          <p className="text-sm text-muted-foreground">A carregar…</p>
-        </ToolLayout>
-      }
-    >
-      <JSONPageContent />
-    </Suspense>
   );
 }

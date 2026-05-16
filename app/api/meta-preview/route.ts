@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/security";
 
 const MAX_BYTES = 350_000;
+const MAX_REDIRECTS = 5;
 
 function extractMeta(html: string): Record<string, string | undefined> {
   const pick = (re: RegExp) => html.match(re)?.[1]?.trim();
@@ -43,50 +44,71 @@ export async function POST(request: NextRequest) {
   const timer = setTimeout(() => controller.abort(), 15_000);
 
   try {
-    const res = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "DevToolbox/1.0 (+https://devtools.catiteo.com)",
-        Accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
-      },
-    });
-    clearTimeout(timer);
+    let currentUrl = url;
+    let res: Response | null = null;
+    for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+      res = await fetch(currentUrl, {
+        method: "GET",
+        redirect: "manual",
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "DevToolbox/1.0 (+https://devtools.catiteo.com)",
+          Accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+        },
+      });
+
+      const location = res.headers.get("location");
+      if (res.status < 300 || res.status >= 400 || !location) break;
+
+      const nextUrl = new URL(location, currentUrl).href;
+      if (isBlockedUrl(nextUrl)) {
+        clearTimeout(timer);
+        return NextResponse.json({ error: "Redirecionamento para URL não permitida" }, { status: 400 });
+      }
+      await res.body?.cancel().catch(() => {});
+      currentUrl = nextUrl;
+    }
+    if (!res || (res.status >= 300 && res.status < 400)) {
+      clearTimeout(timer);
+      return NextResponse.json({ error: "Demasiados redirecionamentos" }, { status: 400 });
+    }
 
     if (!res.ok) {
+      clearTimeout(timer);
       return NextResponse.json(
-        { error: `HTTP ${res.status} ${res.statusText}`, finalUrl: res.url },
+        { error: `HTTP ${res.status} ${res.statusText}`, finalUrl: currentUrl },
         { status: 502 }
       );
     }
 
     const reader = res.body?.getReader();
     if (!reader) {
+      clearTimeout(timer);
       return NextResponse.json({ error: "Sem corpo de resposta" }, { status: 502 });
     }
 
     const chunks: Uint8Array[] = [];
     let total = 0;
+    let scanTail = "";
     while (total < MAX_BYTES) {
       const { done, value } = await reader.read();
       if (done) break;
       chunks.push(value);
       total += value.length;
-      const joined = Buffer.concat(chunks.map((c) => Buffer.from(c)));
-      const head = joined.toString("utf8", 0, Math.min(joined.length, MAX_BYTES));
-      if (/<\/head>/i.test(head) || /<body[\s>]/i.test(head)) {
+      scanTail = (scanTail + Buffer.from(value).toString("utf8")).slice(-1_000);
+      if (/<\/head>/i.test(scanTail) || /<body[\s>]/i.test(scanTail)) {
         break;
       }
     }
     await reader.cancel().catch(() => {});
+    clearTimeout(timer);
 
     const buf = Buffer.concat(chunks.map((c) => Buffer.from(c)));
     const html = buf.toString("utf8", 0, Math.min(buf.length, MAX_BYTES));
     const meta = extractMeta(html);
 
     return NextResponse.json({
-      finalUrl: res.url,
+      finalUrl: currentUrl,
       status: res.status,
       meta,
     });
@@ -95,6 +117,7 @@ export async function POST(request: NextRequest) {
     if ((e as Error).name === "AbortError") {
       return NextResponse.json({ error: "Timeout" }, { status: 504 });
     }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    console.error("meta preview failed", e);
+    return NextResponse.json({ error: "Erro ao buscar metadados da URL" }, { status: 500 });
   }
 }

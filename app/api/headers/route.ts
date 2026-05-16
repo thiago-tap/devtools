@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     try {
       const response = await fetch(url, {
         method: "HEAD",
-        redirect: "follow",
+        redirect: "manual",
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -47,10 +47,19 @@ export async function POST(request: NextRequest) {
         headers[key] = value;
       });
 
+      const location = response.headers.get("location");
+      if (response.status >= 300 && response.status < 400 && location) {
+        const nextUrl = new URL(location, url).href;
+        if (isBlockedUrl(nextUrl)) {
+          return NextResponse.json({ error: "Redirecionamento para URL não permitida" }, { status: 400 });
+        }
+      }
+
       return NextResponse.json({
         status: response.status,
         statusText: response.statusText,
         url: response.url,
+        redirectLocation: location,
         headers,
         redirected: response.redirected,
       });
@@ -65,8 +74,9 @@ export async function POST(request: NextRequest) {
       throw fetchError;
     }
   } catch (e) {
+    console.error("headers lookup failed", e);
     return NextResponse.json(
-      { error: "Erro ao buscar URL: " + (e as Error).message },
+      { error: "Erro ao buscar headers da URL" },
       { status: 500 }
     );
   }

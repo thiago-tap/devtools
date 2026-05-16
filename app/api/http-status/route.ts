@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     const res = await fetch(url, {
       method: "GET",
-      redirect: "follow",
+      redirect: "manual",
       signal: AbortSignal.timeout(12_000),
       headers: { "User-Agent": "DevToolbox/1.0 (+https://devtools.catiteo.com)" },
     });

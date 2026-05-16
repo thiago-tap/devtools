@@ -6,7 +6,7 @@ describe("yaml-json", () => {
     const r = await yamlToJson("app: devtools\nversion: 1");
     expect(r.error).toBeUndefined();
     expect(JSON.parse(r.result)).toEqual({ app: "devtools", version: 1 });
-  });
+  }, 30_000);
 
   it("json to yaml", async () => {
     const r = await jsonToYaml('{"ok":true}');

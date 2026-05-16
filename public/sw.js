@@ -1,5 +1,5 @@
 const CACHE_NAME = "devtoolbox-v1";
-const CORE_ASSETS = ["/", "/manifest.json", "/icon.svg"];
+const CORE_ASSETS = ["/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)));
@@ -20,10 +20,15 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  const isStaticAsset =
+    url.pathname.startsWith("/_next/static/") ||
+    ["script", "style", "image", "font", "manifest"].includes(request.destination);
+  if (!isStaticAsset) return;
 
   event.respondWith(
     caches.match(request).then((cached) =>
       cached ?? fetch(request).then((response) => {
+        if (!response.ok) return response;
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         return response;

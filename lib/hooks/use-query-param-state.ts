@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-export function useQueryParamState(name: string, initialValue = "") {
+const DEFAULT_MAX_URL_VALUE_LENGTH = 2_000;
+
+export function useQueryParamState(
+  name: string,
+  initialValue = "",
+  maxUrlValueLength = DEFAULT_MAX_URL_VALUE_LENGTH,
+) {
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
@@ -15,11 +21,11 @@ export function useQueryParamState(name: string, initialValue = "") {
     (next: string) => {
       setValue(next);
       const url = new URL(window.location.href);
-      if (next) url.searchParams.set(name, next);
+      if (next && next.length <= maxUrlValueLength) url.searchParams.set(name, next);
       else url.searchParams.delete(name);
       window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
     },
-    [name],
+    [maxUrlValueLength, name],
   );
 
   return [value, setSharedValue] as const;

@@ -5,6 +5,8 @@ import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/tools/copy-button";
+import { useQueryParamState } from "@/lib/hooks/use-query-param-state";
+import { useToolHistory } from "@/lib/hooks/use-tool-history";
 import {
   addDateDuration,
   calculateDateDifference,
@@ -15,6 +17,17 @@ import {
   type DateDifference,
 } from "@/lib/tools/date-calculator";
 import { AlertCircle, CalendarDays, RotateCcw } from "lucide-react";
+
+type DateCalculatorHistory = {
+  baseDate: string;
+  days: string;
+  weeks: string;
+  months: string;
+  years: string;
+  targetDate: string;
+  startDate: string;
+  endDate: string;
+};
 
 function todayBr(): string {
   const now = new Date();
@@ -54,15 +67,16 @@ function ErrorMessage({ children }: { children: string }) {
 }
 
 export default function CalculadoraDatasPage() {
-  const [baseDate, setBaseDate] = useState(todayBr());
-  const [days, setDays] = useState("15");
-  const [weeks, setWeeks] = useState("0");
-  const [months, setMonths] = useState("0");
-  const [years, setYears] = useState("0");
-  const [targetDate, setTargetDate] = useState("17/07/2016");
-  const [startDate, setStartDate] = useState(todayBr());
-  const [endDate, setEndDate] = useState("31/05/2026");
+  const [baseDate, setBaseDate] = useQueryParamState("base", todayBr());
+  const [days, setDays] = useQueryParamState("days", "15");
+  const [weeks, setWeeks] = useQueryParamState("weeks", "0");
+  const [months, setMonths] = useQueryParamState("months", "0");
+  const [years, setYears] = useQueryParamState("years", "0");
+  const [targetDate, setTargetDate] = useQueryParamState("target", "17/07/2016");
+  const [startDate, setStartDate] = useQueryParamState("start", todayBr());
+  const [endDate, setEndDate] = useQueryParamState("end", "31/05/2026");
   const [today, setToday] = useState(() => new Date());
+  const history = useToolHistory<DateCalculatorHistory>("calculadora-datas");
 
   useEffect(() => {
     const id = setInterval(() => setToday(new Date()), 60_000);
@@ -105,13 +119,40 @@ export default function CalculadoraDatasPage() {
     { label: "Meses", value: months, setValue: setMonths },
     { label: "Anos", value: years, setValue: setYears },
   ];
+  const saveHistory = () => {
+    const value: DateCalculatorHistory = {
+      baseDate,
+      days,
+      weeks,
+      months,
+      years,
+      targetDate,
+      startDate,
+      endDate,
+    };
+
+    history.add("cálculo de datas", value);
+  };
+  const restoreHistory = (value: DateCalculatorHistory) => {
+    setBaseDate(value.baseDate);
+    setDays(value.days);
+    setWeeks(value.weeks);
+    setMonths(value.months);
+    setYears(value.years);
+    setTargetDate(value.targetDate);
+    setStartDate(value.startDate);
+    setEndDate(value.endDate);
+  };
 
   return (
     <ToolLayout
       title="Calculadora de Datas"
       description="Some dias, semanas, meses e anos; calcule diferenças e prazos no formato brasileiro."
     >
-      <Panel title="Somar ou subtrair prazo">
+      <Panel
+        title="Somar ou subtrair prazo"
+        actions={<Button size="sm" variant="outline" onClick={saveHistory}>Guardar</Button>}
+      >
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="md:col-span-2">
@@ -241,6 +282,24 @@ export default function CalculadoraDatasPage() {
           )}
         </div>
       </Panel>
+      {history.items.length > 0 && (
+        <Panel title="Histórico local" actions={<Button size="sm" variant="outline" onClick={history.clear}>Limpar</Button>}>
+          <div className="space-y-2">
+            {history.items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="block w-full rounded border p-2 text-left hover:bg-muted/40"
+                onClick={() => restoreHistory(item.value)}
+              >
+                <code className="text-xs">
+                  {item.value.baseDate} + {item.value.days}d / {item.value.startDate} até {item.value.endDate}
+                </code>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
     </ToolLayout>
   );
 }

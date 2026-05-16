@@ -7,16 +7,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/tools/copy-button";
+import { useQueryParamState } from "@/lib/hooks/use-query-param-state";
 import { decodeJWT, formatJWTClaim } from "@/lib/tools/jwt";
 import { signJwtHS256 } from "@/lib/tools/jwt-sign";
 import { verifyJwtHS256, verifyJwtRs256WithJwk } from "@/lib/tools/jwt-verify";
 import { AlertCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 
 type Tab = "decode" | "sign" | "verify";
+type PublicJwk = JsonWebKey & { kid?: string };
+type JwksApiResponse = { keys?: PublicJwk[]; error?: string };
+
+function isTab(value: string): value is Tab {
+  return value === "decode" || value === "sign" || value === "verify";
+}
 
 export default function JWTPage() {
-  const [tab, setTab] = useState<Tab>("decode");
+  const [tabParam, setTabParam] = useQueryParamState("tab", "decode");
   const [input, setInput] = useState("");
+  const tab: Tab = isTab(tabParam) ? tabParam : "decode";
+  const setTab = (next: Tab) => setTabParam(next);
   const decoded = input.trim() ? decodeJWT(input) : null;
 
   const [secret, setSecret] = useState("");
@@ -25,6 +34,7 @@ export default function JWTPage() {
   const [signed, setSigned] = useState("");
   const [verifySecret, setVerifySecret] = useState("");
   const [verifyJwk, setVerifyJwk] = useState("");
+  const [verifyJwksUrl, setVerifyJwksUrl] = useState("");
   const [verifyResult, setVerifyResult] = useState("");
 
   function sign() {
@@ -64,6 +74,35 @@ export default function JWTPage() {
       setVerifyResult(result.ok ? "Assinatura RS256 válida." : (result.error ?? "Falhou."));
     } catch {
       setVerifyResult("JWK inválido.");
+    }
+  }
+
+  async function verifyRs256FromJwks() {
+    setVerifyResult("");
+    const headerKid = decoded?.result?.header?.kid;
+    const kid = typeof headerKid === "string" ? headerKid : undefined;
+    try {
+      const response = await fetch("/api/jwks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: verifyJwksUrl }),
+      });
+      const data = (await response.json()) as JwksApiResponse;
+      if (!response.ok || data.error) {
+        setVerifyResult(data.error ?? "Erro ao buscar JWKS.");
+        return;
+      }
+
+      const key = data.keys?.find((candidate) => !kid || candidate.kid === kid);
+      if (!key) {
+        setVerifyResult(kid ? `Nenhuma chave JWKS encontrada para kid=${String(kid)}.` : "Nenhuma chave JWKS encontrada.");
+        return;
+      }
+
+      const result = await verifyJwtRs256WithJwk(input, key);
+      setVerifyResult(result.ok ? "Assinatura RS256 válida via JWKS." : (result.error ?? "Falhou."));
+    } catch {
+      setVerifyResult("Erro ao verificar via JWKS.");
     }
   }
 
@@ -250,6 +289,24 @@ export default function JWTPage() {
               disabled={!input.trim() || !verifyJwk.trim()}
             >
               Verificar RS256
+            </Button>
+          </Panel>
+          <Panel title="Verificar RS256 com URL JWKS">
+            <Input
+              value={verifyJwksUrl}
+              onChange={(e) => setVerifyJwksUrl(e.target.value)}
+              placeholder="https://issuer.example/.well-known/jwks.json"
+              className="font-mono"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              A busca é feita pelo servidor, com bloqueio de URLs privadas e seleção automática por kid quando existir no header.
+            </p>
+            <Button
+              className="mt-3"
+              onClick={() => void verifyRs256FromJwks()}
+              disabled={!input.trim() || !verifyJwksUrl.trim()}
+            >
+              Buscar JWKS e verificar
             </Button>
           </Panel>
           {verifyResult && (
