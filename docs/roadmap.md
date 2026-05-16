@@ -1,10 +1,110 @@
-# Roadmap — DevToolbox e Estúdio de Estampas
+# DevTools Roadmap
+
+Este roadmap organiza o DevToolbox como uma plataforma de ferramentas para desenvolvimento diário: rápida, privada quando possível, fácil de compartilhar e com uma base consistente para novas ferramentas.
+
+## Fase 1 — Product Foundation
+
+Objetivo: tornar a experiência mais coesa e preparar o catálogo para crescer.
+
+- Definir um contrato comum para ferramentas:
+  - entrada clara;
+  - saída copiável ou descarregável;
+  - `metadataForTool`;
+  - indicação de privacidade: client-only, server/API ou AI-assisted;
+  - testes mínimos para lógica pura.
+- URLs compartilháveis:
+  - `?input=...`;
+  - `?mode=...`;
+  - parâmetros específicos por ferramenta quando fizer sentido.
+- Histórico local por ferramenta:
+  - últimos inputs/outputs em `localStorage`;
+  - limite pequeno por ferramenta;
+  - botão para limpar histórico.
+- Home personalizada:
+  - favoritos/pinned no topo;
+  - coleções por fluxo de trabalho.
+- Busca melhorada:
+  - aliases como `jwt`, `token`, `bearer`, `base64 decode`, `dns all`;
+  - busca por nome, descrição, tags e aliases.
+- Coleções iniciais:
+  - Debug de API;
+  - Frontend;
+  - Segurança;
+  - Imagens;
+  - JSON/API.
+
+## Fase 2 — Ferramentas de Alto Valor
+
+Objetivo: aumentar a utilidade para tarefas comuns de backend, frontend, segurança e APIs.
+
+- JWT verify com secret/JWKS.
+- JWK ↔ PEM converter.
+- CSP builder/analyzer.
+- robots.txt + sitemap validator.
+- SSL/TLS checker.
+- HTTP status explainer.
+- JSON Schema validator.
+- Zod ↔ TypeScript ↔ JSON Schema.
+- OpenAPI mini-validator/viewer.
+- UUID v7 / ULID / NanoID.
+- Cron humanizer com próximos horários.
+
+## Fase 3 — Suite Network/API Debug
+
+Objetivo: consolidar as ferramentas de rede em um pacote forte para depuração de APIs e domínios.
+
+- DNS checker como base da suite (modo `Todos` já entregue).
+- Headers checker.
+- CORS probe.
+- Redirect chain.
+- Meta/Open Graph preview.
+- SSL/TLS checker.
+- Status checker.
+- Latency/check endpoint.
+- Webhook inspector/mock.
+
+## Fase 4 — SEO/PWA
+
+Objetivo: melhorar descoberta, instalação e uso recorrente.
+
+- Páginas por categoria.
+- Conteúdo descritivo por ferramenta.
+- Offline-first para ferramentas client-side.
+- Manifest com mais shortcuts.
+- Sitemap mais rico.
+- Open Graph mais completo.
+
+## Fase 5 — Qualidade e Manutenção
+
+Objetivo: manter crescimento rápido sem perder consistência.
+
+- `docs/ARCHITECTURE.md`.
+- `docs/CONTRIBUTING.md`.
+- Checklist para nova ferramenta.
+- Separação documentada entre:
+  - client-only;
+  - server/API;
+  - AI-assisted.
+- Padrão de testes por tipo de ferramenta.
+- Smoke tests representativos dos principais fluxos.
+
+## Status Atual
+
+Concluído ou em andamento recente:
+
+- Ferramentas JSON, YAML, JWT, PEM, QR Code, Slug, Semver, JSONPath, Lorem/Faker.
+- Imagem para dev com remoção de metadados e pack de favicons.
+- Redirect chain, Meta/Open Graph e CORS probe.
+- DNS checker com tipos individuais e modo `Todos`.
+- Calculadora de Datas em formato brasileiro.
+- CI com lint, type-check, testes, build e E2E smoke em `main`.
+## Histórico anterior — DevToolbox e Estúdio de Estampas
 
 Legenda: `[x]` feito · `[ ]` pendente
 
 ---
 
-## Fase 0 — Documentação
+### Fase 0 — Documentação
 
 | Status | Entrega |
 |--------|---------|
@@ -13,7 +113,7 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 ---
 
-## Fase 1 — Migração Easypanel
+### Fase 1 — Migração Easypanel
 
 | Status | Tarefa |
 |--------|--------|
@@ -26,7 +126,7 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 ---
 
-## Fase 2 — Estúdio de Estampas (MVP)
+### Fase 2 — Estúdio de Estampas (MVP)
 
 | Status | Tarefa |
 |--------|--------|
@@ -45,7 +145,7 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 ---
 
-## Fase 3 — Remover fundo
+### Fase 3 — Remover fundo
 
 | Status | Tarefa |
 |--------|--------|
@@ -55,7 +155,7 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 ---
 
-## Fase 4 — Halftone
+### Fase 4 — Halftone
 
 | Status | Tarefa |
 |--------|--------|
@@ -64,7 +164,7 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 ---
 
-## Fase 5 — Vetorização
+### Fase 5 — Vetorização
 
 | Status | Tarefa |
 |--------|--------|
@@ -73,7 +173,7 @@ Legenda: `[x]` feito · `[ ]` pendente
 
 ---
 
-## Fase 6 — Pipeline e polish
+### Fase 6 — Pipeline e polish
 
 | Status | Tarefa |
 |--------|--------|

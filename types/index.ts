@@ -6,6 +6,8 @@ export interface Tool {
   href: string;
   icon: string;
   tags: string[];
+  aliases?: string[];
+  privacy?: "client-only" | "server-api" | "ai-assisted";
   isNew?: boolean;
   hasAI?: boolean;
   /** ISO date — usado para destaque "Novidades" na home */

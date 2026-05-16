@@ -5,22 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CopyButton } from "@/components/tools/copy-button";
 import { encodeBase64, decodeBase64, encodeURL, decodeURL, encodeHTML, decodeHTML } from "@/lib/tools/base64";
+import { useQueryParamState } from "@/lib/hooks/use-query-param-state";
+import { useToolHistory } from "@/lib/hooks/use-tool-history";
 import { AlertCircle } from "lucide-react";
 
 type Mode = "base64" | "url" | "html";
 
 export default function Base64Page() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useQueryParamState("input", "");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [mode, setMode] = useState<Mode>("base64");
+  const history = useToolHistory<{ input: string; output: string; mode: Mode }>("base64");
 
   const encode = () => {
     setError(""); setOutput("");
     if (!input.trim()) return;
-    if (mode === "base64") setOutput(encodeBase64(input));
-    else if (mode === "url") setOutput(encodeURL(input));
-    else setOutput(encodeHTML(input));
+    const result = mode === "base64" ? encodeBase64(input) : mode === "url" ? encodeURL(input) : encodeHTML(input);
+    setOutput(result);
+    history.add(`${mode} encode`, { input, output: result, mode });
   };
 
   const decode = () => {
@@ -28,12 +31,24 @@ export default function Base64Page() {
     if (!input.trim()) return;
     if (mode === "base64") {
       const r = decodeBase64(input);
-      r.error ? setError(r.error) : setOutput(r.result);
+      if (r.error) {
+        setError(r.error);
+      } else {
+        setOutput(r.result);
+        history.add("base64 decode", { input, output: r.result, mode });
+      }
     } else if (mode === "url") {
       const r = decodeURL(input);
-      r.error ? setError(r.error) : setOutput(r.result);
+      if (r.error) {
+        setError(r.error);
+      } else {
+        setOutput(r.result);
+        history.add("url decode", { input, output: r.result, mode });
+      }
     } else {
-      setOutput(decodeHTML(input));
+      const result = decodeHTML(input);
+      setOutput(result);
+      history.add("html decode", { input, output: result, mode });
     }
   };
 
@@ -78,6 +93,27 @@ export default function Base64Page() {
           )}
         </Panel>
       </div>
+      {history.items.length > 0 && (
+        <Panel title="Histórico local" actions={<Button size="sm" variant="outline" onClick={history.clear}>Limpar</Button>}>
+          <div className="space-y-2">
+            {history.items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="block w-full rounded border p-2 text-left hover:bg-muted/40"
+                onClick={() => {
+                  setInput(item.value.input);
+                  setOutput(item.value.output);
+                  setMode(item.value.mode);
+                }}
+              >
+                <span className="text-xs font-medium">{item.label}</span>
+                <code className="block truncate text-xs text-muted-foreground">{item.value.input}</code>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
     </ToolLayout>
   );
 }

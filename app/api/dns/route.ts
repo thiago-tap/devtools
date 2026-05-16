@@ -25,7 +25,69 @@ const RCODE_MESSAGES: Record<number, string> = {
   5: "REFUSED - Requisição recusada",
 };
 
-const ALLOWED_TYPES = new Set(["A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA", "SRV", "CAA"]);
+const QUERY_TYPES = ["A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA", "SRV", "CAA"] as const;
+const ALLOWED_TYPES = new Set([...QUERY_TYPES, "ALL"]);
+
+type DnsRecord = {
+  name: string;
+  type: string;
+  ttl: number;
+  value: string;
+};
+
+type DnsJsonResponse = {
+  Status: number;
+  Answer?: { name: string; type: number; TTL: number; data: string }[];
+};
+
+type DnsQueryResult = { status: number; records: DnsRecord[] };
+type DnsAllResult = DnsQueryResult & { dnsType: (typeof QUERY_TYPES)[number] };
+
+function toRecords(data: DnsJsonResponse): DnsRecord[] {
+  return (data.Answer ?? []).map((r) => ({
+    name: r.name,
+    type: DNS_TYPE_NAMES[r.type] ?? `TYPE${r.type}`,
+    ttl: r.TTL,
+    value: r.data,
+  }));
+}
+
+async function queryDns(domain: string, queryType: string): Promise<DnsQueryResult> {
+  const url = new URL("https://cloudflare-dns.com/dns-query");
+  url.searchParams.set("name", domain);
+  url.searchParams.set("type", queryType);
+
+  const response = await fetch(url.toString(), {
+    headers: { Accept: "application/dns-json" },
+    signal: AbortSignal.timeout(8_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erro ao consultar DNS: ${response.status}`);
+  }
+
+  const data = (await response.json()) as DnsJsonResponse;
+  return { status: data.Status, records: toRecords(data) };
+}
+
+function isFulfilledDnsResult(
+  item: PromiseSettledResult<DnsAllResult>,
+): item is PromiseFulfilledResult<DnsAllResult> {
+  return item.status === "fulfilled";
+}
+
+async function queryAllDns(domain: string): Promise<DnsQueryResult[]> {
+  const settled = await Promise.allSettled(
+    QUERY_TYPES.map(async (dnsType) => ({
+      dnsType,
+      ...(await queryDns(domain, dnsType)),
+    })),
+  );
+
+  return settled
+    .filter(isFulfilledDnsResult)
+    .map((item) => item.value);
+}
 
 export async function POST(request: NextRequest) {
   const blocked = withApiGuards(request);
@@ -51,47 +113,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Tipo DNS não suportado" }, { status: 400 });
     }
 
-    const url = new URL("https://cloudflare-dns.com/dns-query");
-    url.searchParams.set("name", validated.clean);
-    url.searchParams.set("type", queryType);
+    if (queryType === "ALL") {
+      const results = await queryAllDns(validated.clean);
 
-    const response = await fetch(url.toString(), {
-      headers: { Accept: "application/dns-json" },
-    });
+      const records = results
+        .filter((r) => r.status === 0)
+        .flatMap((r) => r.records)
+        .sort((a, b) => a.type.localeCompare(b.type) || a.value.localeCompare(b.value));
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Erro ao consultar DNS: ${response.status}` },
-        { status: 502 }
-      );
+      if (results.length === 0) {
+        return NextResponse.json({ error: "Erro ao consultar DNS" }, { status: 502 });
+      }
+
+      if (records.length === 0 && results.every((r) => r.status !== 0)) {
+        const firstStatus = results[0]?.status ?? 2;
+        const msg = RCODE_MESSAGES[firstStatus] ?? `Erro DNS (código ${firstStatus})`;
+        return NextResponse.json({ error: msg, status: firstStatus });
+      }
+
+      return NextResponse.json({
+        records,
+        domain: validated.clean,
+        queryType,
+      });
     }
 
-    const data = (await response.json()) as {
-      Status: number;
-      Answer?: { name: string; type: number; TTL: number; data: string }[];
-    };
+    const data = await queryDns(validated.clean, queryType);
 
-    if (data.Status !== 0) {
-      const msg = RCODE_MESSAGES[data.Status] ?? `Erro DNS (código ${data.Status})`;
-      return NextResponse.json({ error: msg, status: data.Status });
+    if (data.status !== 0) {
+      const msg = RCODE_MESSAGES[data.status] ?? `Erro DNS (código ${data.status})`;
+      return NextResponse.json({ error: msg, status: data.status });
     }
-
-    const records = (data.Answer ?? []).map((r) => ({
-      name: r.name,
-      type: DNS_TYPE_NAMES[r.type] ?? `TYPE${r.type}`,
-      ttl: r.TTL,
-      value: r.data,
-    }));
 
     return NextResponse.json({
-      records,
+      records: data.records,
       domain: validated.clean,
       queryType,
     });
   } catch (e) {
-    return NextResponse.json(
-      { error: "Erro interno: " + (e as Error).message },
-      { status: 500 }
-    );
+    console.error("[dns] query error", e);
+    return NextResponse.json({ error: "Erro ao consultar DNS" }, { status: 502 });
   }
 }

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/tools/copy-button";
 import { Loader2, AlertCircle, Search } from "lucide-react";
 
-const DNS_TYPES = ["A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA", "CAA"] as const;
+const DNS_TYPES = ["ALL", "A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA", "SRV", "CAA"] as const;
 type DnsType = (typeof DNS_TYPES)[number];
 
 interface DnsRecord {
@@ -81,7 +81,7 @@ export default function DnsPage() {
                 className="font-mono"
                 onClick={() => setRecordType(type)}
               >
-                {type}
+                {type === "ALL" ? "Todos" : type}
               </Button>
             ))}
           </div>
@@ -110,10 +110,12 @@ export default function DnsPage() {
 
       {result?.records && (
         <Panel
-          title={`${result.records.length} registro(s) ${result.queryType} para ${result.domain}`}
+          title={`${result.records.length} registro(s) ${
+            result.queryType === "ALL" ? "encontrado(s)" : result.queryType
+          } para ${result.domain}`}
           actions={
             result.records.length > 0
-              ? <CopyButton text={result.records.map((r) => r.value).join("\n")} />
+              ? <CopyButton text={result.records.map((r) => `${r.type}\t${r.ttl}s\t${r.value}`).join("\n")} />
               : undefined
           }
         >
@@ -131,8 +133,11 @@ export default function DnsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {result.records.map((record, i) => (
-                    <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                  {result.records.map((record) => (
+                    <tr
+                      key={`${record.type}-${record.ttl}-${record.value}`}
+                      className="border-b last:border-0 hover:bg-muted/30"
+                    >
                       <td className="py-2 px-3">
                         <Badge variant="outline" className="font-mono text-xs">{record.type}</Badge>
                       </td>

@@ -36,6 +36,20 @@
       "description": "Decodificar ou gerar JWT",
       "url": "/tools/jwt",
       "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Calculadora de Datas",
+      "short_name": "Datas",
+      "description": "Calcular prazos e diferença entre datas",
+      "url": "/tools/calculadora-datas",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "DNS Check",
+      "short_name": "DNS",
+      "description": "Consultar registros DNS",
+      "url": "/tools/dns",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }

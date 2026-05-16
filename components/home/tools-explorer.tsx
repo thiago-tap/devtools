@@ -7,6 +7,7 @@ import {
   Braces,
   Bot,
   Calculator,
+  CalendarDays,
   Clock,
   Database,
   FileCode2,
@@ -41,7 +42,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { TOOLS, CATEGORIES, searchTools } from "@/lib/tools";
+import { TOOLS, CATEGORIES, TOOL_COLLECTIONS, searchTools } from "@/lib/tools";
 import { useFavorites } from "@/lib/hooks/use-favorites";
 import type { ToolCategory } from "@/types";
 
@@ -63,6 +64,7 @@ const ICONS: Record<string, React.ElementType> = {
   Braces,
   Bot,
   Calculator,
+  CalendarDays,
   Clock,
   Database,
   FileCode2,
@@ -124,6 +126,16 @@ export function ToolsExplorer({ toolCount }: ToolsExplorerProps) {
     () => TOOLS.filter((t) => favorites.includes(t.id)),
     [favorites]
   );
+  const collections = useMemo(
+    () =>
+      TOOL_COLLECTIONS.map((collection) => ({
+        ...collection,
+        tools: collection.toolIds
+          .map((id) => TOOLS.find((tool) => tool.id === id))
+          .filter((tool): tool is (typeof TOOLS)[number] => Boolean(tool)),
+      })),
+    [],
+  );
 
   const categoriesToShow = useMemo(() => {
     if (query.trim()) return [...new Set(filtered.map((t) => t.category))];
@@ -175,7 +187,7 @@ export function ToolsExplorer({ toolCount }: ToolsExplorerProps) {
       {loaded && favoriteTools.length > 0 && !query.trim() && (
         <div className="mb-10">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-            Favoritos
+            Fixados
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {favoriteTools.map((tool) => (
@@ -185,6 +197,33 @@ export function ToolsExplorer({ toolCount }: ToolsExplorerProps) {
                 isFavorite={isFavorite(tool.id)}
                 onToggleFavorite={() => toggle(tool.id)}
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!query.trim() && (
+        <div className="mb-10">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+            Coleções
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {collections.map((collection) => (
+              <div key={collection.id} className="rounded-lg border bg-card p-4">
+                <h3 className="font-semibold text-sm">{collection.name}</h3>
+                <p className="text-xs text-muted-foreground mt-1">{collection.description}</p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {collection.tools.map((tool) => (
+                    <Link
+                      key={tool.id}
+                      href={tool.href}
+                      className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent"
+                    >
+                      {tool.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
