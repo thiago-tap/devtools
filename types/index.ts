@@ -8,6 +8,8 @@ export interface Tool {
   tags: string[];
   isNew?: boolean;
   hasAI?: boolean;
+  /** ISO date — usado para destaque "Novidades" na home */
+  addedAt?: string;
 }
 
 export type ToolCategory =

@@ -217,7 +217,7 @@ export default function EstampasPage() {
       setError("Envie uma imagem primeiro.");
       return;
     }
-    let pipelineStr = pipelineJson.trim();
+    const pipelineStr = pipelineJson.trim();
     try {
       JSON.parse(pipelineStr);
     } catch {

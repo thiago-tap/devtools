@@ -10,20 +10,30 @@ import {
   Clock,
   Database,
   FileCode2,
+  FileKey,
   FileText,
   FileType,
+  Filter,
   Fingerprint,
   GitCompare,
   Globe,
   Hash,
+  ImageDown,
   Key,
   KeyRound,
+  Library,
+  Link2,
+  Package,
   Palette,
+  QrCode,
   Regex,
+  Route,
   Search,
   Server,
   ShieldCheck,
+  ShieldHalf,
   Shirt,
+  Tags,
   Star,
   Timer,
   Variable,
@@ -56,19 +66,29 @@ const ICONS: Record<string, React.ElementType> = {
   Clock,
   Database,
   FileCode2,
+  FileKey,
   FileText,
   FileType,
+  Filter,
   Fingerprint,
   GitCompare,
   Globe,
   Hash,
+  ImageDown,
   Key,
   KeyRound,
+  Library,
+  Link2,
+  Package,
   Palette,
+  QrCode,
   Regex,
+  Route,
   Server,
   ShieldCheck,
+  ShieldHalf,
   Shirt,
+  Tags,
   Timer,
   Variable,
 };
@@ -77,9 +97,22 @@ interface ToolsExplorerProps {
   toolCount: number;
 }
 
+const NEWS_MAX_AGE_DAYS = 55;
+
+function isNewsTool(t: (typeof TOOLS)[number]): boolean {
+  if (!t.addedAt) return false;
+  const t0 = new Date(t.addedAt).getTime();
+  if (Number.isNaN(t0)) return false;
+  const days = (Date.now() - t0) / 86_400_000;
+  return days >= 0 && days <= NEWS_MAX_AGE_DAYS;
+}
+
 export function ToolsExplorer({ toolCount }: ToolsExplorerProps) {
   const [query, setQuery] = useState("");
   const { favorites, loaded, toggle, isFavorite } = useFavorites();
+
+  const newsTools = useMemo(() => TOOLS.filter(isNewsTool), []);
+  const newsIds = useMemo(() => new Set(newsTools.map((t) => t.id)), [newsTools]);
 
   const filtered = useMemo(() => {
     const q = query.trim();
@@ -121,6 +154,24 @@ export function ToolsExplorer({ toolCount }: ToolsExplorerProps) {
         />
       </div>
 
+      {loaded && newsTools.length > 0 && !query.trim() && (
+        <div className="mb-10">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+            Novidades
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {newsTools.map((tool) => (
+              <ToolCard
+                key={`news-${tool.id}`}
+                tool={tool}
+                isFavorite={isFavorite(tool.id)}
+                onToggleFavorite={() => toggle(tool.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {loaded && favoriteTools.length > 0 && !query.trim() && (
         <div className="mb-10">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
@@ -145,7 +196,9 @@ export function ToolsExplorer({ toolCount }: ToolsExplorerProps) {
         </p>
       ) : (
         categoriesToShow.map((category) => {
-          const tools = filtered.filter((t) => t.category === category);
+          const tools = filtered
+            .filter((t) => t.category === category)
+            .filter((t) => query.trim() || !newsIds.has(t.id));
           if (!tools.length) return null;
           return (
             <div key={category} className="mb-10">

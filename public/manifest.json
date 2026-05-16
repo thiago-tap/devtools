@@ -14,5 +14,28 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "JSON",
+      "short_name": "JSON",
+      "description": "Formatar e validar JSON",
+      "url": "/tools/json",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Base64",
+      "short_name": "Base64",
+      "description": "Codificar e descodificar Base64",
+      "url": "/tools/base64",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "JWT",
+      "short_name": "JWT",
+      "description": "Decodificar ou gerar JWT",
+      "url": "/tools/jwt",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
   ]
 }

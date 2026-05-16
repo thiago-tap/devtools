@@ -1,5 +1,7 @@
 "use client";
-import { useState } from "react";
+
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +12,8 @@ import { Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
 
 type Mode = "format" | "minify" | "typescript";
 
-export default function JSONPage() {
+function JSONPageContent() {
+  const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
@@ -18,6 +21,13 @@ export default function JSONPage() {
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [indent, setIndent] = useState(2);
+
+  useEffect(() => {
+    const m = searchParams.get("mode");
+    if (m === "format" || m === "minify" || m === "typescript") {
+      setMode(m);
+    }
+  }, [searchParams]);
 
   const validation = input ? validateJSON(input) : null;
 
@@ -57,7 +67,6 @@ export default function JSONPage() {
 
   return (
     <ToolLayout title="Formatador JSON" description="Formate, valide, minifique e converta JSON para TypeScript" hasAI>
-      {/* Mode selector */}
       <div className="flex gap-2 flex-wrap">
         {(["format", "minify", "typescript"] as Mode[]).map((m) => (
           <Button key={m} variant={mode === m ? "default" : "outline"} size="sm" onClick={() => setMode(m)}>
@@ -87,7 +96,9 @@ export default function JSONPage() {
                   {validation.valid ? "Válido" : "Inválido"}
                 </Badge>
               )}
-              <Button size="sm" onClick={run} disabled={!input.trim()}>Executar</Button>
+              <Button size="sm" onClick={run} disabled={!input.trim()}>
+                Executar
+              </Button>
             </div>
           }
         >
@@ -116,7 +127,6 @@ export default function JSONPage() {
         </Panel>
       </div>
 
-      {/* AI Explanation */}
       <Panel
         title="Explicar com AI"
         actions={
@@ -131,5 +141,19 @@ export default function JSONPage() {
         </p>
       </Panel>
     </ToolLayout>
+  );
+}
+
+export default function JSONPage() {
+  return (
+    <Suspense
+      fallback={
+        <ToolLayout title="Formatador JSON" description="A carregar…">
+          <p className="text-sm text-muted-foreground">A carregar…</p>
+        </ToolLayout>
+      }
+    >
+      <JSONPageContent />
+    </Suspense>
   );
 }

@@ -91,7 +91,7 @@ export async function convertImage(input: Buffer, opts: ConvertOptions): Promise
   const dpi = opts.dpi ?? DEFAULT_DPI;
   const quality = opts.quality ?? 90;
 
-  let pipeline = sharp(input).rotate().withMetadata({ density: dpi });
+  const pipeline = sharp(input).rotate().withMetadata({ density: dpi });
 
   switch (opts.format) {
     case "jpeg":

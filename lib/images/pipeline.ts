@@ -1,6 +1,7 @@
 import type { OutputFormat } from "@/lib/images/constants";
 import { parseOutputFormat } from "@/lib/images/constants";
 import { buildProofPdf } from "@/lib/images/proof-pdf";
+import { stripImageMetadata } from "@/lib/images/favicon-pack";
 import {
   alphaMaskGrayscale,
   convertImage,
@@ -40,6 +41,7 @@ const ALLOWED_ACTIONS = new Set([
   "alpha_mask",
   "negative_plate",
   "proof_pdf",
+  "strip_metadata",
 ]);
 
 const MAX_STEPS = 16;
@@ -256,6 +258,12 @@ export async function runImagePipeline(
       case "proof_pdf": {
         buf = await buildProofPdf(buf, { fileLabel: ctx.fileName });
         resultKind = "pdf";
+        break;
+      }
+      case "strip_metadata": {
+        buf = await stripImageMetadata(buf);
+        resultKind = "raster";
+        rasterFormat = "png";
         break;
       }
       default:

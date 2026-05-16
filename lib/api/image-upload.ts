@@ -119,6 +119,16 @@ export function epsResponse(buffer: Buffer, baseName: string): NextResponse {
   });
 }
 
+export function zipResponse(buffer: Buffer, baseName: string): NextResponse {
+  return new NextResponse(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${baseName}.zip"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 export function svgResponse(buffer: Buffer, baseName: string): NextResponse {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

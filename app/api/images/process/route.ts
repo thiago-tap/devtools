@@ -8,6 +8,7 @@ import {
   pdfResponse,
   svgResponse,
   withImageApiGuards,
+  zipResponse,
 } from "@/lib/api/image-upload";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/security";
 import { parseOutputFormat } from "@/lib/images/constants";
@@ -36,6 +37,7 @@ import {
   vectorizeToSvg,
 } from "@/lib/images/process";
 import { buildProofPdf } from "@/lib/images/proof-pdf";
+import { faviconZipFromImage, stripImageMetadata } from "@/lib/images/favicon-pack";
 
 export const runtime = "nodejs";
 
@@ -205,6 +207,16 @@ export async function POST(request: NextRequest) {
       case "proof_pdf": {
         const out = await buildProofPdf(buffer, { fileLabel: fileName });
         return pdfResponse(out, `${baseName}-prova`);
+      }
+
+      case "strip_metadata": {
+        const out = await stripImageMetadata(buffer);
+        return imageResponse(out, "png", `${baseName}-sem-meta`);
+      }
+
+      case "favicon_pack": {
+        const out = await faviconZipFromImage(buffer);
+        return zipResponse(out, `${baseName}-favicons`);
       }
 
       case "preset_silk": {

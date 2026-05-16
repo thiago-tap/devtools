@@ -2,9 +2,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Binary, Braces, Bot, Calculator, Clock, Database, FileCode2, FileText, FileType,
-  Fingerprint, GitCompare, Globe, Hash, Key, KeyRound, Palette, Regex, Server,
-  ShieldCheck, Shirt, Timer, Variable, Wrench,
+  Binary, Braces, Bot, Calculator, Clock, Database, FileCode2, FileKey, FileText, FileType,
+  Filter, Fingerprint, GitCompare, Globe, Hash, ImageDown, Key, KeyRound, Library, Link2,
+  Package, Palette, QrCode, Regex, Route, Server, ShieldCheck, ShieldHalf, Shirt, Tags, Timer,
+  Variable, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TOOLS } from "@/lib/tools";
@@ -12,9 +13,10 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import type { ToolCategory } from "@/types";
 
 const ICONS: Record<string, React.ElementType> = {
-  Binary, Braces, Bot, Calculator, Clock, Database, FileCode2, FileText, FileType,
-  Fingerprint, GitCompare, Globe, Hash, Key, KeyRound, Palette,
-  Regex, Server, ShieldCheck, Shirt, Timer, Variable,
+  Binary, Braces, Bot, Calculator, Clock, Database, FileCode2, FileKey, FileText, FileType,
+  Filter, Fingerprint, GitCompare, Globe, Hash, ImageDown, Key, KeyRound, Library, Link2,
+  Package, Palette, QrCode, Regex, Route, Server, ShieldCheck, ShieldHalf, Shirt, Tags, Timer,
+  Variable,
 };
 
 const CATEGORY_LABELS: Record<ToolCategory, string> = {

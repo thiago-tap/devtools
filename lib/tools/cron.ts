@@ -82,15 +82,15 @@ export function getNextExecutions(expression: string, count = 5): Date[] {
 function matchesCron(date: Date, parts: string[]): boolean {
   const [minute, hour, dom, month, dow] = parts;
   return (
-    matchField(date.getMinutes(), minute, 0, 59) &&
-    matchField(date.getHours(), hour, 0, 23) &&
-    matchField(date.getDate(), dom, 1, 31) &&
-    matchField(date.getMonth() + 1, month, 1, 12) &&
-    matchField(date.getDay(), dow, 0, 6)
+    matchField(date.getMinutes(), minute) &&
+    matchField(date.getHours(), hour) &&
+    matchField(date.getDate(), dom) &&
+    matchField(date.getMonth() + 1, month) &&
+    matchField(date.getDay(), dow)
   );
 }
 
-function matchField(value: number, field: string, min: number, max: number): boolean {
+function matchField(value: number, field: string): boolean {
   if (field === "*") return true;
   if (field.startsWith("*/")) {
     const step = parseInt(field.slice(2));

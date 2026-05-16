@@ -28,7 +28,6 @@ export default function RegexPage() {
   const result = useMemo(() => {
     if (!pattern || !testString) return null;
     try {
-      const regex = new RegExp(pattern, flags);
       const matches: { match: string; index: number; groups: Record<string, string> | null }[] = [];
       let m: RegExpExecArray | null;
       const r = new RegExp(pattern, flags.includes("g") ? flags : flags + "g");
