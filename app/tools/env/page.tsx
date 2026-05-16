@@ -1,37 +1,40 @@
 "use client";
 
 import { useState } from "react";
+import { AlertCircle } from "lucide-react";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/tools/copy-button";
 import { formatEnv, maskEnvSecrets, parseEnvLines } from "@/lib/tools/env-formatter";
-import { AlertCircle } from "lucide-react";
+import { compareEnvFiles } from "@/lib/tools/env-toolkit";
 
 export default function EnvPage() {
   const [input, setInput] = useState(`DATABASE_URL=postgres://localhost:5432/app
 API_KEY=changeme
 DEBUG=true`);
   const [output, setOutput] = useState("");
+  const [example, setExample] = useState("DATABASE_URL=\nAPI_KEY=\nDEBUG=");
   const [errors, setErrors] = useState<string[]>([]);
   const [sortKeys, setSortKeys] = useState(false);
 
   const parsed = input.trim() ? parseEnvLines(input) : { lines: [], errors: [] };
+  const comparison = compareEnvFiles(input, example);
 
-  const runFormat = () => {
+  function runFormat(): void {
     const { result, errors: fmtErrors } = formatEnv(input, sortKeys);
     setOutput(result);
     setErrors(fmtErrors);
-  };
+  }
 
-  const runMask = () => {
+  function runMask(): void {
     setOutput(maskEnvSecrets(input));
     setErrors([]);
-  };
+  }
 
   return (
     <ToolLayout
-      title="Formatador .env"
+      title="Env Toolkit"
       description="Valide, ordene e mascare variáveis de ambiente — útil antes de commitar ou compartilhar"
     >
       <Panel title="Arquivo .env">
@@ -57,6 +60,14 @@ DEBUG=true`);
           <Button size="sm" variant="outline" onClick={runMask}>
             Mascarar secrets
           </Button>
+        </div>
+      </Panel>
+      <Panel title=".env.example">
+        <Textarea value={example} onChange={(e) => setExample(e.target.value)} className="min-h-[120px] font-mono text-sm" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-sm">
+          <div className="rounded border p-2">Faltam no .env: {comparison.missingInEnv.join(", ") || "nenhuma"}</div>
+          <div className="rounded border p-2">Faltam no example: {comparison.missingInExample.join(", ") || "nenhuma"}</div>
+          <div className="rounded border p-2">Vazias: {comparison.emptyValues.join(", ") || "nenhuma"}</div>
         </div>
       </Panel>
 
@@ -97,6 +108,9 @@ DEBUG=true`);
           <pre className="text-sm font-mono whitespace-pre-wrap">{output}</pre>
         </Panel>
       )}
+      <Panel title=".env.example sanitizado" actions={<CopyButton text={comparison.sanitizedExample} />}>
+        <pre className="text-sm font-mono whitespace-pre-wrap">{comparison.sanitizedExample}</pre>
+      </Panel>
     </ToolLayout>
   );
 }

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   Binary, Braces, Bot, Calculator, CalendarDays, Clock, Database, FileCode2, FileKey, FileText, FileType,
   Filter, Fingerprint, GitCompare, Globe, Hash, ImageDown, Key, KeyRound, Library, Link2,
-  Package, Palette, QrCode, Regex, Route, Server, ShieldCheck, ShieldHalf, Shirt, Tags, Timer,
+  Package, Palette, QrCode, Regex, Route, Server, ShieldCheck, ShieldHalf, Shirt, Tags, Terminal, Timer,
   Variable, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import type { ToolCategory } from "@/types";
 const ICONS: Record<string, React.ElementType> = {
   Binary, Braces, Bot, Calculator, CalendarDays, Clock, Database, FileCode2, FileKey, FileText, FileType,
   Filter, Fingerprint, GitCompare, Globe, Hash, ImageDown, Key, KeyRound, Library, Link2,
-  Package, Palette, QrCode, Regex, Route, Server, ShieldCheck, ShieldHalf, Shirt, Tags, Timer,
+  Package, Palette, QrCode, Regex, Route, Server, ShieldCheck, ShieldHalf, Shirt, Tags, Terminal, Timer,
   Variable,
 };
 

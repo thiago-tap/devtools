@@ -72,3 +72,10 @@ O service worker usa cache conservador:
 - cache runtime somente para assets estáticos same-origin (`/_next/static`, scripts, styles, imagens, fontes e manifest);
 - nunca intercepta `/api/*`;
 - não faz cache de páginas HTML dinâmicas, evitando conteúdo desatualizado em ferramentas e rotas server-side.
+
+## Próxima fase local-first
+
+- REST Client e collections usam storage local no navegador, sem login e sem banco.
+- Requests externos passam por APIs server-side apenas quando precisam contornar CORS ou consultar URLs públicas.
+- Rotas server-side devem usar helpers de URL pública, timeout, redirect manual/erro e leitura limitada.
+- Ferramentas com IA devem ser opt-in, marcadas como `ai-assisted` e funcionar com fallback local quando possível.

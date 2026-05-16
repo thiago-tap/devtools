@@ -59,6 +59,20 @@
       "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
+      "name": "REST Client",
+      "short_name": "REST",
+      "description": "Executar requests HTTP e collections locais",
+      "url": "/tools/rest-client",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Daily Dev",
+      "short_name": "Daily Dev",
+      "description": "Ferramentas rápidas para o dia a dia",
+      "url": "/collections/daily-dev",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
       "name": "Segurança",
       "short_name": "Segurança",
       "description": "JWT, chaves, hashes, certificados e headers",

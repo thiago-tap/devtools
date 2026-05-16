@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { parse as parseYaml } from "yaml";
+import { CopyButton } from "@/components/tools/copy-button";
+import { diffOpenApi, openApiToRequests, parseOpenApi } from "@/lib/tools/openapi-diff";
 
 type OpenApiDoc = {
   openapi?: string;
@@ -22,9 +23,10 @@ function isOpenApiMethod(method: string): method is OpenApiMethod {
 
 export default function OpenApiPage() {
   const [input, setInput] = useState('{\n  "openapi": "3.0.0",\n  "info": { "title": "Minha API", "version": "1.0.0" },\n  "paths": { "/users": { "get": {}, "post": {} } }\n}');
+  const [compareInput, setCompareInput] = useState("");
   const result = useMemo(() => {
     try {
-      const doc = (input.trim().startsWith("{") ? JSON.parse(input) : parseYaml(input)) as OpenApiDoc;
+      const doc = parseOpenApi(input) as OpenApiDoc;
       const errors: string[] = [];
       if (!doc.openapi && !doc.swagger) errors.push("Campo openapi/swagger ausente.");
       if (!doc.info?.title) errors.push("info.title ausente.");
@@ -45,9 +47,24 @@ export default function OpenApiPage() {
       return { errors: [(e as Error).message], endpoints: [], title: "", version: "" };
     }
   }, [input]);
+  const diff = useMemo(() => {
+    if (!compareInput.trim()) return { items: [], error: "" };
+    try {
+      return { items: diffOpenApi(input, compareInput), error: "" };
+    } catch (e) {
+      return { items: [], error: (e as Error).message };
+    }
+  }, [compareInput, input]);
+  const requests = useMemo(() => {
+    try {
+      return openApiToRequests(input);
+    } catch {
+      return [];
+    }
+  }, [input]);
 
   return (
-    <ToolLayout title="OpenAPI Viewer" description="Resumo rápido de specs OpenAPI/Swagger em JSON.">
+    <ToolLayout title="OpenAPI Viewer" description="Resumo, diff básico e geração de requests a partir de OpenAPI/Swagger.">
       <Panel title="Spec OpenAPI">
         <Textarea value={input} onChange={(e) => setInput(e.target.value)} className="min-h-[360px] text-xs" />
       </Panel>
@@ -62,6 +79,16 @@ export default function OpenApiPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {result.endpoints.map((endpoint) => <code key={endpoint} className="rounded bg-muted p-2 text-xs">{endpoint}</code>)}
         </div>
+      </Panel>
+      <Panel title="Requests gerados" actions={<CopyButton text={JSON.stringify(requests, null, 2)} />}>
+        <div className="flex flex-wrap gap-2">
+          {requests.map((request) => <code key={`${request.method}-${request.path}`} className="rounded bg-muted p-2 text-xs">{request.method} {request.path}</code>)}
+        </div>
+      </Panel>
+      <Panel title="Comparar com nova versão">
+        <Textarea value={compareInput} onChange={(e) => setCompareInput(e.target.value)} placeholder="Cole a nova spec para ver breaking changes básicos" className="min-h-[220px] text-xs" />
+        {diff.error && <p className="mt-3 text-sm text-destructive">{diff.error}</p>}
+        {diff.items.length > 0 && <ul className="mt-3 text-sm space-y-1">{diff.items.map((item) => <li key={item}>{item}</li>)}</ul>}
       </Panel>
     </ToolLayout>
   );

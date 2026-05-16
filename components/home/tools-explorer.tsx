@@ -35,6 +35,7 @@ import {
   ShieldHalf,
   Shirt,
   Tags,
+  Terminal,
   Star,
   Timer,
   Variable,
@@ -91,6 +92,7 @@ const ICONS: Record<string, React.ElementType> = {
   ShieldHalf,
   Shirt,
   Tags,
+  Terminal,
   Timer,
   Variable,
 };

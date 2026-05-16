@@ -108,6 +108,26 @@ Concluído ou em andamento recente:
 - DNS checker com tipos individuais e modo `Todos`.
 - Calculadora de Datas em formato brasileiro.
 - CI com lint, type-check, testes, build e E2E smoke em `main`.
+
+## Próxima Fase — API Debug Platform, Daily Dev e IA opt-in
+
+Status: implementado nesta rodada em versão utilizável.
+
+- API Debug Platform:
+  - REST Client local-first com collections exportáveis.
+  - cURL Importer com snippets `fetch` e HTTPie.
+  - OAuth/OIDC Debugger com PKCE e authorization URL.
+  - OpenAPI Viewer com diff básico e geração de requests.
+- Daily Dev:
+  - Env Toolkit com comparação `.env` vs `.env.example`.
+  - Ignore Generator.
+  - Logs Toolkit.
+  - Web Standards Generator.
+- IA opt-in:
+  - Explain Error.
+  - Schema From Examples.
+  - Test Generator.
+  - Deploy Checklist com resumo opcional por IA.
 ## Histórico anterior — DevToolbox e Estúdio de Estampas
 
 Legenda: `[x]` feito · `[ ]` pendente
