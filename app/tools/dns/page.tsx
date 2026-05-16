@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/tools/copy-button";
+import { useQueryParamState } from "@/lib/hooks/use-query-param-state";
+import { useToolHistory } from "@/lib/hooks/use-tool-history";
 import { Loader2, AlertCircle, Search } from "lucide-react";
 
 const DNS_TYPES = ["ALL", "A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA", "SRV", "CAA"] as const;
@@ -27,24 +29,28 @@ interface DnsResult {
 const EXAMPLES = ["google.com", "github.com", "cloudflare.com"];
 
 export default function DnsPage() {
-  const [domain, setDomain] = useState("");
+  const [domain, setDomain] = useQueryParamState("domain", "");
   const [recordType, setRecordType] = useState<DnsType>("A");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DnsResult | null>(null);
+  const history = useToolHistory<{ domain: string; type: DnsType; records: DnsRecord[] }>("dns");
 
   const lookup = async (domainOverride?: string, typeOverride?: DnsType) => {
     const d = domainOverride ?? domain;
     const t = typeOverride ?? recordType;
-    if (!d.trim()) return;
+    const trimmedDomain = d.trim();
+    if (!trimmedDomain) return;
     setLoading(true);
     setResult(null);
     try {
       const response = await fetch("/api/dns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: d.trim(), type: t }),
+        body: JSON.stringify({ domain: trimmedDomain, type: t }),
       });
-      setResult(await response.json());
+      const data = (await response.json()) as DnsResult;
+      setResult(data);
+      if (data.records) history.add(`${t} ${trimmedDomain}`, { domain: trimmedDomain, type: t, records: data.records });
     } catch {
       setResult({ error: "Erro ao conectar com a API" });
     } finally {
@@ -60,11 +66,13 @@ export default function DnsPage() {
             <Input
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && lookup()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void lookup();
+              }}
               placeholder="exemplo.com"
               className="font-mono"
             />
-            <Button onClick={() => lookup()} disabled={loading || !domain.trim()}>
+            <Button onClick={() => void lookup()} disabled={loading || !domain.trim()}>
               {loading
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Search className="h-4 w-4" />}
@@ -92,7 +100,10 @@ export default function DnsPage() {
               <button
                 key={ex}
                 className="text-primary hover:underline font-mono"
-                onClick={() => { setDomain(ex); lookup(ex, recordType); }}
+                onClick={() => {
+                  setDomain(ex);
+                  void lookup(ex, recordType);
+                }}
               >
                 {ex}
               </button>
@@ -152,6 +163,26 @@ export default function DnsPage() {
               </table>
             </div>
           )}
+        </Panel>
+      )}
+      {history.items.length > 0 && (
+        <Panel title="Histórico local" actions={<Button size="sm" variant="outline" onClick={history.clear}>Limpar</Button>}>
+          <div className="flex flex-wrap gap-2">
+            {history.items.map((item) => (
+              <Button
+                key={item.id}
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setDomain(item.value.domain);
+                  setRecordType(item.value.type);
+                  setResult({ domain: item.value.domain, queryType: item.value.type, records: item.value.records });
+                }}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
         </Panel>
       )}
     </ToolLayout>

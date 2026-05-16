@@ -50,6 +50,20 @@
       "description": "Consultar registros DNS",
       "url": "/tools/dns",
       "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Debug de API",
+      "short_name": "API Debug",
+      "description": "Coleção de ferramentas para depurar APIs",
+      "url": "/collections/api-debug",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Segurança",
+      "short_name": "Segurança",
+      "description": "JWT, chaves, hashes, certificados e headers",
+      "url": "/collections/security",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }

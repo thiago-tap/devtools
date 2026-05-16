@@ -4,6 +4,7 @@ import { isBlockedUrl, parseJsonBody, withApiGuards } from "@/lib/api/security";
 async function fetchText(url: string) {
   const res = await fetch(url, {
     signal: AbortSignal.timeout(10_000),
+    redirect: "error",
     headers: { "User-Agent": "DevToolbox/1.0 (+https://devtools.catiteo.com)" },
   });
   const text = res.ok ? await res.text() : "";
@@ -28,12 +29,18 @@ export async function POST(request: NextRequest) {
       fetchText(`${origin}/sitemap.xml`),
     ]);
     const sitemapUrls = Array.from(sitemap.text.matchAll(/<loc>(.*?)<\/loc>/gi)).map((m) => m[1]).slice(0, 100);
+    const directives = robots.text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => /^(user-agent|allow|disallow|sitemap):/i.test(line))
+      .slice(0, 100);
     return NextResponse.json({
       origin,
       robots: {
         ...robots,
         hasSitemapDirective: /sitemap:/i.test(robots.text),
         disallowCount: (robots.text.match(/^\s*disallow:/gim) ?? []).length,
+        directives,
       },
       sitemap: {
         ok: sitemap.ok,

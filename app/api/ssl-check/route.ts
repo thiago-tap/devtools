@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
       { host: validated.clean, port: 443, servername: validated.clean, timeout: 10_000 },
       () => {
         const cert = socket.getPeerCertificate();
+        const expiresAt = cert.valid_to ? new Date(cert.valid_to) : null;
+        const daysToExpire = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / 86_400_000) : null;
         resolve({
           host: validated.clean,
           authorized: socket.authorized,
@@ -26,6 +28,9 @@ export async function POST(request: NextRequest) {
           issuer: cert.issuer,
           validFrom: cert.valid_from,
           validTo: cert.valid_to,
+          daysToExpire,
+          expiresSoon: daysToExpire !== null && daysToExpire <= 30,
+          expired: daysToExpire !== null && daysToExpire < 0,
           fingerprint256: cert.fingerprint256,
         });
         socket.end();

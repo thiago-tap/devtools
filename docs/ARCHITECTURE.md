@@ -40,3 +40,26 @@ Ferramentas podem usar:
 
 - `useQueryParamState` para URLs compartilháveis;
 - `useToolHistory` para histórico local limitado no browser.
+
+## Contrato final de ferramenta
+
+Cada ferramenta nova deve entregar:
+
+- página em `app/tools/<id>/page.tsx`;
+- metadata em `app/tools/<id>/layout.tsx`;
+- entrada inicial útil ou exemplos;
+- saída com `CopyButton` ou download;
+- `aliases` para busca;
+- `privacy` no catálogo;
+- querystring compartilhável quando houver input principal;
+- histórico local quando houver transformação recorrente;
+- lógica pura em `lib/tools` quando a regra for testável;
+- teste unitário para bibliotecas puras;
+- nota clara quando a ferramenta chama APIs externas pelo servidor.
+
+## SEO e descoberta
+
+- Ferramentas usam `metadataForTool`.
+- Coleções vivem em `/collections/[id]`.
+- Categorias vivem em `/tools/categoria/[category]`.
+- O sitemap inclui home, privacidade, categorias, coleções e ferramentas.

@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/tools/copy-button";
 import { decodeJWT, formatJWTClaim } from "@/lib/tools/jwt";
 import { signJwtHS256 } from "@/lib/tools/jwt-sign";
+import { verifyJwtHS256, verifyJwtRs256WithJwk } from "@/lib/tools/jwt-verify";
 import { AlertCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 
-type Tab = "decode" | "sign";
+type Tab = "decode" | "sign" | "verify";
 
 export default function JWTPage() {
   const [tab, setTab] = useState<Tab>("decode");
@@ -22,8 +23,11 @@ export default function JWTPage() {
   const [payloadJson, setPayloadJson] = useState('{\n  "sub": "test",\n  "iat": 1710000000\n}');
   const [signError, setSignError] = useState("");
   const [signed, setSigned] = useState("");
+  const [verifySecret, setVerifySecret] = useState("");
+  const [verifyJwk, setVerifyJwk] = useState("");
+  const [verifyResult, setVerifyResult] = useState("");
 
-  const sign = () => {
+  function sign() {
     setSignError("");
     setSigned("");
     if (!secret) {
@@ -42,7 +46,26 @@ export default function JWTPage() {
     } catch (e) {
       setSignError((e as Error).message);
     }
-  };
+  }
+
+  function refreshIssuedAt() {
+    const iat = Math.floor(Date.now() / 1000);
+    setPayloadJson(JSON.stringify({ sub: "test", iat }, null, 2));
+  }
+
+  function verifyHs256() {
+    const result = verifyJwtHS256(input, verifySecret);
+    setVerifyResult(result.ok ? "Assinatura HS256 válida." : (result.error ?? "Falhou."));
+  }
+
+  async function verifyRs256() {
+    try {
+      const result = await verifyJwtRs256WithJwk(input, JSON.parse(verifyJwk) as JsonWebKey);
+      setVerifyResult(result.ok ? "Assinatura RS256 válida." : (result.error ?? "Falhou."));
+    } catch {
+      setVerifyResult("JWK inválido.");
+    }
+  }
 
   return (
     <ToolLayout title="JWT" description="Decodifique tokens ou gere JWT HS256 para testes locais.">
@@ -52,6 +75,9 @@ export default function JWTPage() {
         </Button>
         <Button variant={tab === "sign" ? "default" : "outline"} size="sm" onClick={() => setTab("sign")}>
           Gerar (HS256)
+        </Button>
+        <Button variant={tab === "verify" ? "default" : "outline"} size="sm" onClick={() => setTab("verify")}>
+          Verificar
         </Button>
       </div>
 
@@ -168,10 +194,7 @@ export default function JWTPage() {
                 type="button"
                 size="sm"
                 variant="secondary"
-                onClick={() => {
-                  const iat = Math.floor(Date.now() / 1000);
-                  setPayloadJson(JSON.stringify({ sub: "test", iat }, null, 2));
-                }}
+                onClick={refreshIssuedAt}
               >
                 Atualizar iat (agora)
               </Button>
@@ -191,6 +214,49 @@ export default function JWTPage() {
               </div>
             )}
           </Panel>
+        </>
+      )}
+      {tab === "verify" && (
+        <>
+          <Panel title="Token JWT">
+            <Textarea value={input} onChange={(e) => setInput(e.target.value)} className="min-h-[100px] text-xs font-mono" />
+          </Panel>
+          <Panel title="Verificar HS256">
+            <Input
+              type="password"
+              value={verifySecret}
+              onChange={(e) => setVerifySecret(e.target.value)}
+              placeholder="Secret HS256"
+              className="font-mono"
+            />
+            <Button
+              className="mt-3"
+              onClick={verifyHs256}
+              disabled={!input.trim() || !verifySecret}
+            >
+              Verificar HS256
+            </Button>
+          </Panel>
+          <Panel title="Verificar RS256 com JWK público">
+            <Textarea
+              value={verifyJwk}
+              onChange={(e) => setVerifyJwk(e.target.value)}
+              placeholder='{"kty":"RSA","kid":"...","n":"...","e":"AQAB"}'
+              className="min-h-[120px] text-xs font-mono"
+            />
+            <Button
+              className="mt-3"
+              onClick={() => void verifyRs256()}
+              disabled={!input.trim() || !verifyJwk.trim()}
+            >
+              Verificar RS256
+            </Button>
+          </Panel>
+          {verifyResult && (
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              {verifyResult}
+            </div>
+          )}
         </>
       )}
     </ToolLayout>

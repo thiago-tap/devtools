@@ -23,12 +23,12 @@ const PRESETS = [
 export default function CronPage() {
   const [expression, setExpression] = useState("0 9 * * 1-5");
   const result = describeCron(expression);
-  const nextRuns = result.error ? [] : getNextExecutions(expression, 5);
+  const nextRuns = result.error ? [] : getNextExecutions(expression, 10);
 
   const parts = expression.trim().split(/\s+/);
 
   return (
-    <ToolLayout title="Interpretador Cron" description="Interprete e gere expressões cron com descrição em português">
+    <ToolLayout title="Interpretador Cron" description="Interprete cron em português, veja próximas execuções e timezone local">
       <Panel title="Expressão Cron">
         <div className="space-y-3">
           <div className="flex gap-2 items-center">
@@ -79,6 +79,9 @@ export default function CronPage() {
           <Panel title="Descrição">
             <p className="text-lg font-medium">{result.description}</p>
             <p className="text-xs text-muted-foreground mt-2 font-mono">{expression}</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Timezone local: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+            </p>
           </Panel>
 
           <Panel title="Próximas execuções">

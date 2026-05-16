@@ -33,6 +33,8 @@ Objetivo: tornar a experiência mais coesa e preparar o catálogo para crescer.
   - Imagens;
   - JSON/API.
 
+**Status:** implementado. Melhorias contínuas: aplicar histórico/querystring em ferramentas de nicho restantes.
+
 ## Fase 2 — Ferramentas de Alto Valor
 
 Objetivo: aumentar a utilidade para tarefas comuns de backend, frontend, segurança e APIs.
@@ -49,6 +51,8 @@ Objetivo: aumentar a utilidade para tarefas comuns de backend, frontend, seguran
 - UUID v7 / ULID / NanoID.
 - Cron humanizer com próximos horários.
 
+**Status:** implementado em versão utilizável. Melhorias futuras: validação completa de JSON Schema/OpenAPI por especificação e JWKS remoto automático.
+
 ## Fase 3 — Suite Network/API Debug
 
 Objetivo: consolidar as ferramentas de rede em um pacote forte para depuração de APIs e domínios.
@@ -63,6 +67,8 @@ Objetivo: consolidar as ferramentas de rede em um pacote forte para depuração 
 - Latency/check endpoint.
 - Webhook inspector/mock.
 
+**Status:** implementado em versão utilizável, com status/latência, SSL, robots/sitemap e webhook mock.
+
 ## Fase 4 — SEO/PWA
 
 Objetivo: melhorar descoberta, instalação e uso recorrente.
@@ -73,6 +79,8 @@ Objetivo: melhorar descoberta, instalação e uso recorrente.
 - Manifest com mais shortcuts.
 - Sitemap mais rico.
 - Open Graph mais completo.
+
+**Status:** implementado em versão inicial com categorias, coleções, sitemap enriquecido, Open Graph por ferramenta, manifest e service worker.
 
 ## Fase 5 — Qualidade e Manutenção
 
@@ -87,6 +95,8 @@ Objetivo: manter crescimento rápido sem perder consistência.
   - AI-assisted.
 - Padrão de testes por tipo de ferramenta.
 - Smoke tests representativos dos principais fluxos.
+
+**Status:** implementado com docs, contrato de ferramenta e smoke cobrindo home, JSON, Datas, DNS e JSON Schema.
 
 ## Status Atual
 

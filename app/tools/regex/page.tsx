@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useQueryParamState } from "@/lib/hooks/use-query-param-state";
+import { useToolHistory } from "@/lib/hooks/use-tool-history";
 import { Sparkles } from "lucide-react";
 
 const COMMON_PATTERNS = [
@@ -19,11 +21,12 @@ const COMMON_PATTERNS = [
 ];
 
 export default function RegexPage() {
-  const [pattern, setPattern] = useState("");
+  const [pattern, setPattern] = useQueryParamState("pattern", "");
   const [flags, setFlags] = useState("gm");
-  const [testString, setTestString] = useState("");
+  const [testString, setTestString] = useQueryParamState("input", "");
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const history = useToolHistory<{ pattern: string; flags: string; input: string }>("regex");
 
   const result = useMemo(() => {
     if (!pattern || !testString) return null;
@@ -73,7 +76,16 @@ export default function RegexPage() {
   return (
     <ToolLayout title="Testador de Regex" description="Teste expressões regulares com highlighting e explicação por IA" hasAI>
       {/* Pattern input */}
-      <Panel title="Expressão Regular">
+      <Panel
+        title="Expressão Regular"
+        actions={
+          pattern ? (
+            <Button size="sm" variant="outline" onClick={() => history.add(pattern, { pattern, flags, input: testString })}>
+              Guardar
+            </Button>
+          ) : undefined
+        }
+      >
         <div className="flex gap-2">
           <span className="text-muted-foreground text-sm pt-2">/</span>
           <Input
@@ -113,6 +125,26 @@ export default function RegexPage() {
           </Button>
         ))}
       </div>
+      {history.items.length > 0 && (
+        <Panel title="Histórico local" actions={<Button size="sm" variant="outline" onClick={history.clear}>Limpar</Button>}>
+          <div className="flex flex-wrap gap-2">
+            {history.items.map((item) => (
+              <Button
+                key={item.id}
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setPattern(item.value.pattern);
+                  setFlags(item.value.flags);
+                  setTestString(item.value.input);
+                }}
+              >
+                /{item.value.pattern}/
+              </Button>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Panel title="Texto de Teste">

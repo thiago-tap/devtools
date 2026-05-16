@@ -223,6 +223,9 @@ export function ToolsExplorer({ toolCount }: ToolsExplorerProps) {
                     </Link>
                   ))}
                 </div>
+                <Link href={`/collections/${collection.id}`} className="text-xs text-primary hover:underline mt-3 inline-block">
+                  Ver coleção completa
+                </Link>
               </div>
             ))}
           </div>
@@ -242,7 +245,9 @@ export function ToolsExplorer({ toolCount }: ToolsExplorerProps) {
           return (
             <div key={category} className="mb-10">
               <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                {CATEGORY_LABELS[category as ToolCategory] ?? category}
+                <Link href={`/tools/categoria/${String(category).toLowerCase()}`} className="hover:text-foreground">
+                  {CATEGORY_LABELS[category as ToolCategory] ?? category}
+                </Link>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {tools.map((tool) => (
