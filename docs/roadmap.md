@@ -128,6 +128,16 @@ Status: implementado nesta rodada em versão utilizável.
   - Schema From Examples.
   - Test Generator.
   - Deploy Checklist com resumo opcional por IA.
+
+## Fase Atual — Workspace Local e API Runner
+
+Status: implementado em MVP local-first.
+
+- Workspace Local na home com collections, requests, QR Codes e recentes deste navegador.
+- Storage local `version: 2` com migração de dados legados do REST Client.
+- REST Client com requests nomeáveis, atualização de requests salvos e últimas execuções.
+- Runner sequencial de collections REST com resultado por request.
+- QR Codes gerados persistidos localmente e reaparecendo após reload.
 ## Histórico anterior — DevToolbox e Estúdio de Estampas
 
 Legenda: `[x]` feito · `[ ]` pendente

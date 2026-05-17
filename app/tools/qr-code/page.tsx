@@ -5,21 +5,24 @@ import QRCode from "qrcode";
 import { ToolLayout, Panel } from "@/components/layout/tool-layout";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { addRecentItem, loadWorkspace, saveQrCode, saveWorkspace, type WorkspaceQrCode } from "@/lib/storage/workspaces";
 
-interface GeneratedQr {
-  id: string;
-  text: string;
-  dataUrl: string;
-  createdAt: string;
+function generateQrDataUrl(value: string): Promise<string> {
+  return QRCode.toDataURL(value, { width: 280, margin: 2, errorCorrectionLevel: "M" });
 }
 
 export default function QrCodePage() {
   const [text, setText] = useState("https://devtools.catiteo.com");
   const [dataUrl, setDataUrl] = useState("");
   const [error, setError] = useState("");
-  const [generated, setGenerated] = useState<GeneratedQr[]>([]);
+  const [generated, setGenerated] = useState<WorkspaceQrCode[]>([]);
+  const [saving, setSaving] = useState(false);
   const trimmedText = text.trim();
   const hasText = trimmedText.length > 0;
+
+  useEffect(() => {
+    setGenerated(loadWorkspace().qrCodes);
+  }, []);
 
   useEffect(() => {
     if (!hasText) {
@@ -29,7 +32,7 @@ export default function QrCodePage() {
     }
 
     let cancelled = false;
-    void QRCode.toDataURL(text, { width: 280, margin: 2, errorCorrectionLevel: "M" })
+    void generateQrDataUrl(text)
       .then((url) => {
         if (!cancelled) {
           setDataUrl(url);
@@ -47,17 +50,27 @@ export default function QrCodePage() {
     };
   }, [hasText, text]);
 
-  function saveCurrentQr(): void {
-    if (!dataUrl || !hasText) return;
-    setGenerated((items) => [
-      {
-        id: crypto.randomUUID(),
-        text: trimmedText,
-        dataUrl,
-        createdAt: new Date().toLocaleString("pt-BR"),
-      },
-      ...items,
-    ]);
+  async function saveCurrentQr(): Promise<void> {
+    if (!hasText) return;
+    setSaving(true);
+    try {
+      const qrDataUrl = dataUrl || (await generateQrDataUrl(trimmedText));
+      const withQr = saveQrCode(loadWorkspace(), { text: trimmedText, dataUrl: qrDataUrl });
+      const next = addRecentItem(withQr, {
+        type: "qr-code",
+        title: "QR Code",
+        href: "/tools/qr-code",
+        subtitle: trimmedText,
+        dedupeKey: `qr:${trimmedText}`,
+      });
+      saveWorkspace(next);
+      setGenerated(next.qrCodes);
+      setDataUrl(qrDataUrl);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao gerar QR Code");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function startNewQr(): void {
@@ -79,8 +92,8 @@ export default function QrCodePage() {
           className="min-h-[120px] font-mono text-sm"
         />
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button onClick={saveCurrentQr} disabled={!dataUrl || !hasText}>
-            Adicionar QR à lista
+          <Button onClick={() => void saveCurrentQr()} disabled={!hasText || saving}>
+            {saving ? "Adicionando..." : "Adicionar QR à lista"}
           </Button>
           <Button variant="outline" onClick={startNewQr}>
             Novo QR

@@ -79,3 +79,14 @@ O service worker usa cache conservador:
 - Requests externos passam por APIs server-side apenas quando precisam contornar CORS ou consultar URLs públicas.
 - Rotas server-side devem usar helpers de URL pública, timeout, redirect manual/erro e leitura limitada.
 - Ferramentas com IA devem ser opt-in, marcadas como `ai-assisted` e funcionar com fallback local quando possível.
+
+## Workspace local
+
+O workspace local é persistido por `lib/storage/workspaces.ts` e centraliza dados de uso recorrente:
+
+- collections e requests REST;
+- últimos resultados de execução por request;
+- QR Codes gerados;
+- itens recentes exibidos na home.
+
+O formato atual é `version: 2` e migra automaticamente dados legados `version: 1` do REST Client. A home lê esse storage no cliente e mostra apenas um painel local, sem depender de login, banco ou chamadas server-side.
